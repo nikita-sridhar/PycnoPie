@@ -5,6 +5,7 @@ format:
     code-fold: true
     page-layout: full
 editor: visual
+date: last-modified
 ---
 
 *An analysis of the percentage change in kelp consumed across urchin source habitats (urchin barren or kelp forest) and predator treatments (seastar present/ no seastar present)*
@@ -54,7 +55,7 @@ kelp_processed <- kelp %>%
 #| message: false
 
 #overview of kelp data
-unique(kelp_processed$Trial)
+unique(subset(kelp_processed, !is.na(pcnt_grazed))$Trial)
 ```
 
 ### Urchin source habitat vs. kelp grazed for different predator treatments
