@@ -10,4 +10,4 @@ By Nikita Sridhar
 
 ## Code and Figures
 
-All code and figures for analysis of kelp grazed by urchins can be found [here](kelp_analysis.html)
+All code and figures for the analysis of kelp grazed by urchins can be found [here](kelp_analysis.html)
