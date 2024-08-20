@@ -47,6 +47,8 @@ kelp_processed <- kelp %>%
            remove = FALSE) %>%
   mutate(pcnt_grazed = ((Kelp_weight_before_g - Kelp_weight_after_g)/ 
                           Kelp_weight_before_g)*100)
+
+
 ```
 
 ### Trials included in following graphs:
@@ -60,6 +62,8 @@ unique(subset(kelp_processed, !is.na(pcnt_grazed))$Trial)
 
 ### Urchin source habitat vs. kelp grazed for different predator treatments
 
+All trials:
+
 ```{r}
 
 #graph 
@@ -71,4 +75,18 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
   ylab("% Change Kelp Grazed") +
   labs(fill = "Pred treatment")
 
+```
+
+Individual trials:
+
+```{r}
+#graph w facet wrap for trial
+ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, 
+                                  fill = Pred_treatment) ) +
+  geom_boxplot() +
+  theme_classic() +
+  scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Pred treatment") + 
+  facet_wrap(~ Trial)
 ```
