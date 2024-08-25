@@ -62,7 +62,7 @@ unique(subset(kelp_processed, !is.na(pcnt_grazed))$Trial)
 
 ### Urchin source habitat vs. kelp grazed for different predator treatments
 
-All trials:
+Boxplot for all trials:
 
 ```{r}
 
@@ -77,7 +77,7 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 
 ```
 
-Individual trials:
+Boxplot for Individual trials:
 
 ```{r}
 #graph w facet wrap for trial
