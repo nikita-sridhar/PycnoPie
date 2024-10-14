@@ -8,7 +8,7 @@ editor: visual
 date: last-modified
 ---
 
-*An analysis of the percentage change in kelp consumed across urchin source habitats (urchin barren or kelp forest) and predator treatments (seastar present/ no seastar present)*
+*An analysis of the percentage change in kelp consumed across urchin source habitats (urchin barren or kelp forest) and predator treatments (seastar present/ no seastar present). Used to make graphs for live data during the experiment.*
 
 ```{r}
 #| echo: false
