@@ -1,0 +1,73 @@
+#' Data Manipulation for PycnoPie
+#' AUTHOR: Nikita Sridhar
+#' DATE: 11/13/24
+
+#Run 00_cleaning first, or load behavior_cleaned and kelp_cleaned
+
+
+###########################
+###     behavior      ####
+##########################
+
+#adding distance to pycno
+behavior_processed <- behavior_cleaned %>%
+  mutate(dist_slice_pyc1 = abs(slice - pycno1_slice),
+         dist_slice_pyc2 = abs(slice - pycno2_slice)) %>%
+  
+  #adding upstream/downstream variable from urchin POV given pycno position
+  mutate(up_dn_pyc1 = ifelse(slice < pycno1_slice , 
+                             "upstream",
+                             "downstream"),
+         up_dn_pyc2 = ifelse(slice < pycno2_slice , 
+                             "upstream",
+                             "downstream")) %>%
+  
+  #adding variance of pie slices
+  mutate(pcnt_urch_in_slice = urchin_slice_count/Total_num_urchin *100) %>%
+  group_by(Trial, Treatment, Day_numrecord) %>%
+  mutate(variance_of_urch_distrib = var(pcnt_urch_in_slice, na.rm = TRUE)) %>%
+  
+  #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
+  mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
+         dist_slice_pyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc2),
+         up_dn_pyc1 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc1),
+         up_dn_pyc2 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc2))
+
+
+######################################
+#######         kelp           #######
+######################################
+
+#this is for a appending avg pycno pos to kelp data
+behavior_processed_forkelp <- behavior_processed %>%
+  group_by(Trial, Treatment) %>% #going from behavioral assay scale to trial scale
+  summarise(avg_pycno1_slice = mean(pycno1_slice, na.rm = TRUE),
+            avg_pycno2_slice = mean(pycno2_slice, na.rm = TRUE),
+            #closer to 1 = upstream
+            up_dn_pyc1_ratio = sum(up_dn_pyc1=="upstream", na.rm = TRUE)/sum(up_dn_pyc1=="downstream", na.rm = TRUE),
+            up_dn_pyc2_ratio = sum(up_dn_pyc2=="upstream")/sum(up_dn_pyc2=="downstream")) %>%
+  ungroup()
+
+
+#adding summary stats
+kelp_processed <- kelp_cleaned %>%
+  mutate(pcnt_grazed = ((Kelp_weight_before_g - Kelp_weight_after_g)/ 
+                                                          Kelp_weight_before_g)*100) %>%
+  
+  merge(behavior_processed_forkelp, by = c("Treatment", "Trial")) %>%
+  
+  mutate(dist_slice_avgpyc1 = abs(slice - avg_pycno1_slice),
+         dist_slice_avgpyc2 = abs(slice - avg_pycno2_slice), 
+  
+        #this is for model to work - can't be NA - so 100 is far away
+        dist_slice_avgpyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc1),
+        dist_slice_avgpyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc2), 
+  
+        #changing up dn ratio from inf to 1 for control (for model) and NaN to real NA
+        up_dn_pyc1_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc1_ratio),
+        up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio))
+  
+  
+  
+  
+  
