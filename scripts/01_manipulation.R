@@ -9,8 +9,14 @@
 ###     behavior      ####
 ##########################
 
-#adding distance to pycno
+
 behavior_processed <- behavior_cleaned %>%
+  
+  #removing position for now - might want to change later
+  select(-position, -urchin_position_count) %>%
+  unique() %>% 
+  
+  #adding distance to pycno
   mutate(dist_slice_pyc1 = abs(slice - pycno1_slice),
          dist_slice_pyc2 = abs(slice - pycno2_slice)) %>%
   
@@ -23,15 +29,17 @@ behavior_processed <- behavior_cleaned %>%
                              "downstream")) %>%
   
   #adding variance of pie slices
-  mutate(pcnt_urch_in_slice = urchin_slice_count/Total_num_urchin *100) %>%
   group_by(Trial, Treatment, Day_numrecord) %>%
-  mutate(variance_of_urch_distrib = var(pcnt_urch_in_slice, na.rm = TRUE)) %>%
+  mutate(variance_of_urch_distrib = var(urchin_slice_count, na.rm = TRUE), #one value per tank
+         var_to_mean = variance_of_urch_distrib/mean(urchin_slice_count)) %>%
+  ungroup()
   
   #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
   mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
          dist_slice_pyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc2),
          up_dn_pyc1 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc1),
          up_dn_pyc2 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc2))
+
 
 
 ######################################
@@ -68,6 +76,19 @@ kelp_processed <- kelp_cleaned %>%
         up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio))
   
   
-  
-  
+#reformat data to factor for model----------------------------------------------
+
+kelp_processed$Urch_habitat_treatment <- as.factor(kelp_processed$Urch_habitat_treatment)
+kelp_processed$Pred_treatment <- as.factor(kelp_processed$Pred_treatment)
+
+kelp_processed$dist_slice_avgpyc1[is.nan(kelp_processed$dist_slice_avgpyc1)]<-NA
+kelp_processed$dist_slice_avgpyc2[is.nan(kelp_processed$dist_slice_avgpyc2)]<-NA
+
+kelp_processed$dist_slice_avgpyc1 <- as.numeric(kelp_processed$dist_slice_avgpyc1)
+kelp_processed$dist_slice_avgpyc2 <- as.numeric(kelp_processed$dist_slice_avgpyc2)
+
+behavior_processed$Urch_habitat_treatment <- as.factor(behavior_processed$Urch_habitat_treatment)
+behavior_processed$Pred_treatment <- as.factor(behavior_processed$Pred_treatment)
+behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
+behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
   
