@@ -108,7 +108,9 @@ behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
 
 
 
-
+rm(behavior_cleaned)
+rm(behavior_processed_forkelp)
+rm(kelp_cleaned)
 
 
 

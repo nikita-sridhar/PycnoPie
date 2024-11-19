@@ -10,4 +10,6 @@ By Nikita Sridhar
 
 ## Code and Figures
 
-All code and figures for the analysis of kelp grazed by urchins can be found [here](kelp_analysis.html)
+11/18 - Analysis of kelp and behavior data and select results can be found [here](PycnoPie_report.qmd)
+
+Code and figures generated during the experiment using raw data to look at kelp grazed by urchins can be found [here](kelp_analysis.html)

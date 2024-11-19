@@ -128,4 +128,6 @@ kelp_cleaned <- kelp %>%
                            Kelp_ID == 11 ~ 5.5,
                            Kelp_ID == 12 ~ 7.5)) 
   
-
+rm(kelp)
+rm(behavior)
+rm(behavior1)
