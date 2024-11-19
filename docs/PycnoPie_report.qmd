@@ -32,13 +32,27 @@ library(performance)
 library(sjPlot)
 ```
 
-## Analysis of kelp grazed by urchins
-
 ```{r}
 #| message: false
 #| echo: false
 
-kelp_processed <- read.csv("data/manipulated/processed_kelp/kelp_processed.csv")
-behavior_processed <- read.csv("data/manipulated/processed_behavior/behavior_processed.csv")
+source(here::here("./scripts/00_cleaning.R"))
+source(here::here("./scripts/01_manipulation.R"))
+
+```
+
+## Analysis of kelp grazed by urchins
+
+Boxplot of raw data for percentage of kelp grazed by urchin habitat treatment and predator treatment
+
+```{r}
+#kelp grazed by predator/urchin treatment
+ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, 
+                                                               fill = Pred_treatment) ) +
+  geom_boxplot() +
+  theme_classic() +
+  scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Pred treatment")
 
 ```

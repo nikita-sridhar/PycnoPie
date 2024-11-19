@@ -103,8 +103,8 @@ behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
 behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
   
 #write CSVs
-write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
-write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
+#write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
+#write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
 
 
 
