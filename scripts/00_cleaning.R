@@ -39,11 +39,10 @@ behavior1$Num_urch_CREV4 <- as.double(behavior1$Num_urch_CREV4)
 behavior1$Num_urch_CREV5 <- as.double(behavior1$Num_urch_CREV5)
 
 behavior_cleaned <- behavior1 %>%
-  pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "location", values_to = "location_count") %>%
+  pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "location", values_to = "location_count") %>% 
  
    #changing crev locations to pie slice location
-  mutate(crev = case_when(grepl("CREV",location) & location_count > 0  ~ "Y", 
-                          .default = "N"),
+  mutate(crev_count = case_when(grepl("CREV",location) ~ location_count),
          location = recode(location, "Num_urch_CREV1" = ".5_Outer_bottom"),
          location = recode(location, "Num_urch_CREV2" = "2.5_Outer_bottom"),
          location = recode(location, "Num_urch_CREV3" = "4.5_Outer_bottom"),

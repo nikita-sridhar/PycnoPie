@@ -68,31 +68,67 @@ ggplot(behavior_processed,
        y = "Count of urchins in pie slice",
        caption = "Note: inflow is at slice 1, slice 0 denotes inner circle")
 
-#VARIANCE of urchin distribution over treatments
-ggplot(behavior_processed, 
-       aes(x = Treatment,
-           y = variance_of_urch_distrib)) +
-  
-  geom_boxplot() +
-  
-  labs(title = "Variance of urchin distribution across treatments",
-       x = "Treatment",
-       y = "Variance of percentage of urchins per slice")
 
 #VARIANCE TO MEAN RATIO of urchin distribution over treatments
 #NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
+#should i find the variance of the var to mean ratios to find trial scale clustering dynamics?
 ggplot(behavior_processed, 
-       aes(x = Treatment,
-           y = var_to_mean)) +
+       aes(x = Urch_habitat_treatment,
+           y = var_to_mean,
+           fill = Pred_treatment)) +
   
-  geom_point() +
+  geom_bar(stat = "identity", position = position_dodge()) +
+
+  labs(title = "Variance to mean ratio of urchin slices across treatments",
+       x = "Treatment",
+       y = "Variance of percentage of urchins per slice") +
+  
+  theme_classic()
+
+#var-to-mean boxplot
+ggplot(behavior_processed, 
+       aes(x = Urch_habitat_treatment,
+           y = var_to_mean,
+           fill = Pred_treatment)) +
+  
+  geom_boxplot() +
   
   labs(title = "Variance to mean ratio of urchin slices across treatments",
        x = "Treatment",
-       y = "Variance of percentage of urchins per slice")
+       y = "Variance of percentage of urchins per slice") +
+  
+  theme_classic()
 
+#histograms of crevice use
+ggplot(behavior_processed) +
+  geom_histogram(aes(x = pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
+  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
+  labs(title = "Histogram for % of urchins in crevice") +
+  theme_classic()
 
+ggplot(behavior_processed) +
+  geom_histogram(aes(x = trial_avg_pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
+  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
+  labs(title = "Histogram for trial avg % of urchins in crevice") +
+  theme_classic()
 
+#bar charts of crevice use (looks same for behavior scale and trial scale)
+ggplot(behavior_processed, 
+       aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev)) +
+  
+  geom_bar(aes(fill = Urch_habitat_treatment), position = position_dodge(), stat = "identity") +
+  
+  geom_errorbar(aes(ymin = trial_avg_pcnt_in_crev-trial_sd_pcnt_in_crev, 
+                ymax = trial_avg_pcnt_in_crev+trial_sd_pcnt_in_crev,
+                color = Urch_habitat_treatment),
+                position = position_dodge()) +
+  
+  labs(title = "Bar chart of % of urchins in crevice") +
+  theme_classic()
 
-
-
+#boxplot of crevice use - looks diff for behavior scale
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev, 
+               fill = Urch_habitat_treatment)) +
+  labs(title = "Box plot of % of urchins in crevice") +
+  theme_classic()

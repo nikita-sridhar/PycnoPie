@@ -1,0 +1,44 @@
+---
+title: "PycnoPie"
+format: 
+  html:
+    code-fold: true
+    page-layout: full
+editor: visual
+date: last-modified
+---
+
+*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens.*
+
+Load behavior_processed.R and kelp_processed.R first
+
+```{r}
+#| echo: false
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+#| message: false
+#| echo: false
+
+#loading libraries
+library(tidyverse)
+library(here)
+library(googlesheets4)
+library(strex)
+library(lme4)
+library(performance)
+library(sjPlot)
+```
+
+## Analysis of kelp grazed by urchins
+
+```{r}
+#| message: false
+#| echo: false
+
+kelp_processed <- read.csv("data/manipulated/processed_kelp/kelp_processed.csv")
+behavior_processed <- read.csv("data/manipulated/processed_behavior/behavior_processed.csv")
+
+```

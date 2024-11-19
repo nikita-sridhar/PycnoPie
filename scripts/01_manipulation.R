@@ -9,7 +9,6 @@
 ###     behavior      ####
 ##########################
 
-
 behavior_processed <- behavior_cleaned %>%
   
   #removing position for now - might want to change later
@@ -32,14 +31,25 @@ behavior_processed <- behavior_cleaned %>%
   group_by(Trial, Treatment, Day_numrecord) %>%
   mutate(variance_of_urch_distrib = var(urchin_slice_count, na.rm = TRUE), #one value per tank
          var_to_mean = variance_of_urch_distrib/mean(urchin_slice_count)) %>%
-  ungroup()
+  ungroup() %>%
   
   #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
   mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
          dist_slice_pyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc2),
          up_dn_pyc1 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc1),
-         up_dn_pyc2 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc2))
-
+         up_dn_pyc2 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc2)) %>%
+    
+  
+  #adding crevice use - pcnt of urch in crevice
+  group_by(Trial, Treatment, Day_numrecord) %>%
+    mutate(pcnt_in_crev = sum(crev_count, na.rm=TRUE)/Total_num_urchin *100)  %>%  
+  ungroup() %>%
+  
+  #crevice use - averaged between time points (trial scale)
+  group_by(Trial, Treatment) %>%
+  mutate(trial_avg_pcnt_in_crev = mean(pcnt_in_crev),
+         trial_sd_pcnt_in_crev = sd(trial_avg_pcnt_in_crev, na.rm = TRUE)) %>%
+  ungroup()
 
 
 ######################################
@@ -92,3 +102,14 @@ behavior_processed$Pred_treatment <- as.factor(behavior_processed$Pred_treatment
 behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
 behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
   
+#write CSVs
+write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
+write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
+
+
+
+
+
+
+
+
