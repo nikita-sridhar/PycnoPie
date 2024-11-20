@@ -178,7 +178,39 @@ b4 <- glmmTMB::glmmTMB(pyc_slice_count ~
 sjPlot::tab_model(b4)
 
 
-#b5 = simple model: urchin variance-to-mean ratio as a function of pred treatment and 
+#b5 = simple model: urchin variance-to-mean ratio as a function of pred treatment and urchin habitat treatment
+ggplot(behavior_processed, aes(x=var_to_mean))+
+  geom_histogram() +
+  facet_wrap(vars(Treatment))
+
+b5 <- glmmTMB::glmmTMB(var_to_mean ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+
+                         (1| Trial/Tank),  
+                       
+                       data = behavior_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(b5)
+
+#b6 = simple model: urchin crevice use as a function of pred treatment and urchin habitat treatment
+b6 <- glmmTMB::glmmTMB(pcnt_in_crev ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank),  
+                         
+                         data = behavior_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(b6)
 
 #check assumptions-------------------------------------------------------------
 

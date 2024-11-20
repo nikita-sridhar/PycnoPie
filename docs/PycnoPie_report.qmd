@@ -45,7 +45,7 @@ source(here::here("./scripts/01_manipulation.R"))
 
 ## Kelp grazing data
 
-#### **Raw data:** % change in kelp grazed by urchins from kelp forest/barrens with/without a star
+#### **Raw data:** % change in kelp grazed by urchins 
 
 ```{r}
 #| layout-ncol: 2
@@ -62,7 +62,7 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 
 ```
 
-#### **Model data:** General linear mixed model for % change in kelp grazed
+#### **Model data:** General linear mixed model for % change in kelp grazed by urchins
 
 ```{r}
 #| layout-ncol: 2
@@ -99,30 +99,11 @@ The fixed effects of urchin habitat, predator treatment, and the interaction ter
 
 ## Behavior data
 
-General distribution of urchins in tanks
+#### **Variance to mean ratio of urchin counts in a tank:** 
 
-```{r}
-#general distribution of urchin count in pie slices
-ggplot(behavior_processed, 
-       aes(x = slice,
-           y = urchin_slice_count)) +
-  
-  geom_point(aes(colour = Treatment),
-             position = "jitter") +
-  
-  geom_smooth(method = "lm") +
-  
-  facet_wrap(vars(Treatment)) +
-  
-  labs(title = "General distribution of urchins in slices for different treatments",
-       x = "Slice",
-       y = "Count of urchins in pie slice",
-       caption = "Note: inflow is at slice 1, slice 0 denotes inner circle") +
-  
-  theme_classic()
-```
+A metric to assess the clumped vs. uniform vs. random distribution of urchins in a tank, and see how this varies when a star is/isn't present. This was calculated by finding the variance of urchin counts per pie slice in a tank and dividing this by the mean urchin count per pie slice in a tank averaged across behavioral assays in a trial.
 
-Variance to mean ratio for urchin count in each pie slice
+Variance to mean of 1 = random, \>1 = clumped, \<1 = uniform
 
 ```{r}
 #| layout-ncol: 2
@@ -132,21 +113,21 @@ Variance to mean ratio for urchin count in each pie slice
 #should i find the variance of the var to mean ratios to find trial scale clustering dynamics?
 ggplot(behavior_processed, 
        aes(x = Urch_habitat_treatment,
-           y = var_to_mean,
+           y = trial_avg_var_to_mean,
            fill = Pred_treatment)) +
   
   geom_bar(stat = "identity", position = position_dodge()) +
 
-  labs(title = "Variance to mean ratio of urchin slices across treatments",
+  labs(title = "Trial avg variance-to-mean ratio of urchin slice counts",
        x = "Treatment",
-       y = "Variance of percentage of urchins per slice") +
+       y = "Trial avg variance-to-mean ratio of urchin counts") +
   
   theme_classic()
 
-#var-to-mean boxplot
+
 ggplot(behavior_processed, 
        aes(x = Urch_habitat_treatment,
-           y = var_to_mean,
+           y = trial_avg_var_to_mean,
            fill = Pred_treatment)) +
   
   geom_boxplot() +
@@ -158,29 +139,49 @@ ggplot(behavior_processed,
   theme_classic()
 ```
 
-Crevice use
-
 ```{r}
 #| layout-ncol: 2
 
-#histograms
-ggplot(behavior_processed) +
-  geom_histogram(aes(x = pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
-  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
-  labs(title = "Histogram for % of urchins in crevice") +
-  theme_classic()
+var2mean_mod <- glmmTMB::glmmTMB(var_to_mean ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank),  
+                       
+                       data = behavior_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(var2mean_mod)
+
+predicted_var2mean_mod <- ggpredict(model = var2mean_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
+
+ggplot(predicted_var2mean_mod, aes(group, predicted, fill = x)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
+  labs(title = "Predicted values of var to mean ratio from GLMM", x = "Urchin habitat", y = "Var-to-mean ratio", fill = "Pred treatment") +
+  theme_classic() +
+  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("Var-to-mean ratio") +
+  labs(fill = "Predator treatment")
+```
+
+Due to overlapping error bars and non-significant effects of predator treatment in the model, there seems to be no clear effect of star presence on the clumped vs. uniform distribution of urchins in a tank. (Note: need to add error bars to bar chart).
+
+#### **Crevice use**
+
+The percentage of urchins in a tank in a crevice averaged over behavioral assays (at the trial scale).
+
+```{r}
+#| layout-ncol: 3
 
 ggplot(behavior_processed) +
   geom_histogram(aes(x = trial_avg_pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
   facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
   labs(title = "Histogram for trial avg % of urchins in crevice") +
   theme_classic()
-```
-
-```{r}
-#| layout-ncol: 2
-
-#bar/boxplots:
 
 #bar charts of crevice use (looks same for behavior scale and trial scale)
 ggplot(behavior_processed, 
@@ -202,12 +203,43 @@ ggplot(behavior_processed) +
                fill = Urch_habitat_treatment)) +
   labs(title = "Box plot of % of urchins in crevice") +
   theme_classic()
+
+
 ```
 
-Issues with cause-effect (urchin influencing star position or star influencing urchin position?) and dynamic nature of features within a tank (upstream/downstream, distance to star) limit fixed effects for behavioral model
+```{r}
+#| layout-ncol: 2
+
+crev_mod <- glmmTMB::glmmTMB(pcnt_in_crev ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank),  
+                         
+                         data = behavior_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(crev_mod)
+
+predicted_crev_mod <- ggpredict(model = crev_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
+
+ggplot(predicted_crev_mod, aes(group, predicted, fill = x)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
+  labs(title = "Predicted values of var to mean ratio from GLMM", x = "Urchin habitat", y = "Var-to-mean ratio", fill = "Pred treatment") +
+  theme_classic() +
+  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("Var-to-mean ratio") +
+  labs(fill = "Predator treatment")
+```
+
+Again, due to overlapping error bars and non-significant fixed effects, there are no clear trends for crevice use by urchins dependent on source habitat/predator treatment.
 
 ## Key takeaways:
 
 > Urchins graze less around a star for both kelp forest and barren treatments
 >
-> Urchins from a barren are more affected by the presence of a star than urchins from a kelp forest
+> Grazing rates for urchins from a barren are more affected by the presence of a star than urchins from a kelp forest

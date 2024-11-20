@@ -101,6 +101,8 @@ ggplot(behavior_processed,
   
   theme_classic()
 
+
+
 #histograms of crevice use
 ggplot(behavior_processed) +
   geom_histogram(aes(x = pcnt_in_crev, fill = Pred_treatment),position = "dodge") +

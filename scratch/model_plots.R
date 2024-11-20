@@ -37,6 +37,7 @@ ggplot(predicted_k2, aes(group, predicted, fill = x)) +
 predicted_b1 <- ggpredict(model = b1, terms = c("Pred_treatment","Urch_habitat_treatment","pyc_slice_count"))
 predicted_b2 <- ggpredict(model = b2, terms = c("Pred_treatment","Urch_habitat_treatment","pyc_slice_count"))
 predicted_b4 <- ggpredict(model = b4, terms = c("Pred_treatment","urchin_slice_count"))
+predicted_b5 <- ggpredict(model = b5, terms = c("Pred_treatment","Urch_habitat_treatment"))
 
 
 #predicted values plot
@@ -56,3 +57,13 @@ ggplot(predicted_b4, aes(group, predicted, fill = x)) +
 
 
 plot(effects::allEffects(b1))
+
+
+ggplot(predicted_b5, aes(group, predicted, fill = x)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
+  labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+  theme_classic() +
+  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Predator treatment")

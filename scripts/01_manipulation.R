@@ -32,6 +32,10 @@ behavior_processed <- behavior_cleaned %>%
   mutate(variance_of_urch_distrib = var(urchin_slice_count, na.rm = TRUE), #one value per tank
          var_to_mean = variance_of_urch_distrib/mean(urchin_slice_count)) %>%
   ungroup() %>%
+  #var-to-mean at trial scale
+  group_by(Trial, Treatment) %>%
+  mutate(trial_avg_var_to_mean = mean(var_to_mean)) %>%
+  ungroup() %>%
   
   #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
   mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
@@ -101,6 +105,8 @@ behavior_processed$Urch_habitat_treatment <- as.factor(behavior_processed$Urch_h
 behavior_processed$Pred_treatment <- as.factor(behavior_processed$Pred_treatment)
 behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
 behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
+behavior_processed$Day_numrecord <- as.factor(behavior_processed$Day_numrecord)
+
   
 #write CSVs
 #write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
