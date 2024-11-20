@@ -8,7 +8,7 @@ editor: visual
 date: last-modified
 ---
 
-*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found in PycnoPie/scripts/00_cleaning.R and PycnoPie/scripts/01_manipulation.R*
+*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found [here](https://github.com/nikita-sridhar/PycnoPie/tree/main/scripts).*
 
 ```{r}
 #| echo: false
@@ -45,7 +45,7 @@ source(here::here("./scripts/01_manipulation.R"))
 
 ## Kelp grazing data
 
-#### **Raw data:** % change in kelp grazed by urchins 
+#### **Raw data:** % change in kelp grazed by urchins
 
 ```{r}
 #| layout-ncol: 2
@@ -99,7 +99,7 @@ The fixed effects of urchin habitat, predator treatment, and the interaction ter
 
 ## Behavior data
 
-#### **Variance to mean ratio of urchin counts in a tank:** 
+#### **Variance to mean ratio of urchin counts in a tank:**
 
 A metric to assess the clumped vs. uniform vs. random distribution of urchins in a tank, and see how this varies when a star is/isn't present. This was calculated by finding the variance of urchin counts per pie slice in a tank and dividing this by the mean urchin count per pie slice in a tank averaged across behavioral assays in a trial.
 
