@@ -66,7 +66,9 @@ ggplot(behavior_processed,
   labs(title = "General distribution of urchins in slices for different treatments",
        x = "Slice",
        y = "Count of urchins in pie slice",
-       caption = "Note: inflow is at slice 1, slice 0 denotes inner circle")
+       caption = "Note: inflow is at slice 1, slice 0 denotes inner circle") +
+  
+  theme_classic()
 
 
 #VARIANCE TO MEAN RATIO of urchin distribution over treatments

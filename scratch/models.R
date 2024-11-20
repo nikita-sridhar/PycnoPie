@@ -178,6 +178,8 @@ b4 <- glmmTMB::glmmTMB(pyc_slice_count ~
 sjPlot::tab_model(b4)
 
 
+#b5 = simple model: urchin variance-to-mean ratio as a function of pred treatment and 
+
 #check assumptions-------------------------------------------------------------
 
 b1_residuals <- DHARMa::simulateResiduals(b1)
