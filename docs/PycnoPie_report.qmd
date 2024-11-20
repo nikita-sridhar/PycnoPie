@@ -8,7 +8,7 @@ editor: visual
 date: last-modified
 ---
 
-*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens.*
+*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found in PycnoPie/scripts/00_cleaning.R and PycnoPie/scripts/01_manipulation.R*
 
 ```{r}
 #| echo: false
@@ -28,6 +28,10 @@ library(strex)
 library(lme4)
 library(performance)
 library(sjPlot)
+library(glmmTMB)
+library(DHARMa)
+library(ggeffects)
+library(effects)
 ```
 
 ```{r}
@@ -39,11 +43,13 @@ source(here::here("./scripts/01_manipulation.R"))
 
 ```
 
-## Analysis of kelp grazed by urchins
+## Kelp grazing data
 
-Boxplot of raw data for percentage of kelp grazed by urchin habitat treatment and predator treatment
+#### **Raw data:** % change in kelp grazed by urchins from kelp forest/barrens with/without a star
 
 ```{r}
+#| layout-ncol: 2
+
 #kelp grazed by predator/urchin treatment
 ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, 
                                                                fill = Pred_treatment) ) +
@@ -51,6 +57,157 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
   theme_classic() +
   scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
   ylab("% Change Kelp Grazed") +
-  labs(fill = "Pred treatment")
+  xlab("Urchin habitat ") +
+  labs(fill = "Predator treatment")
 
 ```
+
+#### **Model data:** General linear mixed model for % change in kelp grazed
+
+```{r}
+#| layout-ncol: 2
+
+#building model
+kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank/Kelp_ID),  
+                       
+                       data = kelp_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(kelp_mod)
+
+#plots of estimates
+predicted_kelp_mod <- ggpredict(model = kelp_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
+
+ggplot(predicted_kelp_mod, aes(group, predicted, fill = x)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
+  labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+  theme_classic() +
+  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Predator treatment")
+```
+
+The fixed effects of urchin habitat, predator treatment, and the interaction term are all significant in the GLMM for % kelp grazed. The plot of predicted values from the GLMM shows clearer trends in grazing than the boxplot of raw data. Both kelp forest and barren urchins reduce grazing around a star. Urchins from a barren reduce grazing more than urchins from a kelp forest. The reduction of grazing of kelp forest urchins around a star may be enough to allow for net kelp growth (note negative bar - this may be due to mucus production or growth; regardless, grazing suppression in this treatment was sufficient to allow for positive increase in kelp mass).
+
+## Behavior data
+
+General distribution of urchins in tanks
+
+```{r}
+#general distribution of urchin count in pie slices
+ggplot(behavior_processed, 
+       aes(x = slice,
+           y = urchin_slice_count)) +
+  
+  geom_point(aes(colour = Treatment),
+             position = "jitter") +
+  
+  geom_smooth(method = "lm") +
+  
+  facet_wrap(vars(Treatment)) +
+  
+  labs(title = "General distribution of urchins in slices for different treatments",
+       x = "Slice",
+       y = "Count of urchins in pie slice",
+       caption = "Note: inflow is at slice 1, slice 0 denotes inner circle") +
+  
+  theme_classic()
+```
+
+Variance to mean ratio for urchin count in each pie slice
+
+```{r}
+#| layout-ncol: 2
+
+#VARIANCE TO MEAN RATIO of urchin distribution over treatments
+#NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
+#should i find the variance of the var to mean ratios to find trial scale clustering dynamics?
+ggplot(behavior_processed, 
+       aes(x = Urch_habitat_treatment,
+           y = var_to_mean,
+           fill = Pred_treatment)) +
+  
+  geom_bar(stat = "identity", position = position_dodge()) +
+
+  labs(title = "Variance to mean ratio of urchin slices across treatments",
+       x = "Treatment",
+       y = "Variance of percentage of urchins per slice") +
+  
+  theme_classic()
+
+#var-to-mean boxplot
+ggplot(behavior_processed, 
+       aes(x = Urch_habitat_treatment,
+           y = var_to_mean,
+           fill = Pred_treatment)) +
+  
+  geom_boxplot() +
+  
+  labs(title = "Variance to mean ratio of urchin slices across treatments",
+       x = "Treatment",
+       y = "Variance of percentage of urchins per slice") +
+  
+  theme_classic()
+```
+
+Crevice use
+
+```{r}
+#| layout-ncol: 2
+
+#histograms
+ggplot(behavior_processed) +
+  geom_histogram(aes(x = pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
+  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
+  labs(title = "Histogram for % of urchins in crevice") +
+  theme_classic()
+
+ggplot(behavior_processed) +
+  geom_histogram(aes(x = trial_avg_pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
+  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
+  labs(title = "Histogram for trial avg % of urchins in crevice") +
+  theme_classic()
+```
+
+```{r}
+#| layout-ncol: 2
+
+#bar/boxplots:
+
+#bar charts of crevice use (looks same for behavior scale and trial scale)
+ggplot(behavior_processed, 
+       aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev)) +
+  
+  geom_bar(aes(fill = Urch_habitat_treatment), position = position_dodge(), stat = "identity") +
+  
+  geom_errorbar(aes(ymin = trial_avg_pcnt_in_crev-trial_sd_pcnt_in_crev, 
+                ymax = trial_avg_pcnt_in_crev+trial_sd_pcnt_in_crev,
+                color = Urch_habitat_treatment),
+                position = position_dodge()) +
+  
+  labs(title = "Bar chart of % of urchins in crevice") +
+  theme_classic()
+
+#boxplot of crevice use - looks diff for behavior scale
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev, 
+               fill = Urch_habitat_treatment)) +
+  labs(title = "Box plot of % of urchins in crevice") +
+  theme_classic()
+```
+
+Issues with cause-effect (urchin influencing star position or star influencing urchin position?) and dynamic nature of features within a tank (upstream/downstream, distance to star) limit fixed effects for behavioral model
+
+## Key takeaways:
+
+> Urchins graze less around a star for both kelp forest and barren treatments
+>
+> Urchins from a barren are more affected by the presence of a star than urchins from a kelp forest
