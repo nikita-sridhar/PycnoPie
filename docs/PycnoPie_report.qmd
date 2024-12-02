@@ -51,8 +51,7 @@ source(here::here("./scripts/01_manipulation.R"))
 #| layout-ncol: 2
 
 #kelp grazed by predator/urchin treatment
-ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, 
-                                                               fill = Pred_treatment) ) +
+ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, fill = Pred_treatment) ) +
   geom_boxplot() +
   theme_classic() +
   scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
@@ -82,15 +81,27 @@ kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~
 
 sjPlot::tab_model(kelp_mod)
 
-#plots of estimates
 predicted_kelp_mod <- ggpredict(model = kelp_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
 
+#bar chart of estimates
 ggplot(predicted_kelp_mod, aes(group, predicted, fill = x)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
   labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
   theme_classic() +
   scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Predator treatment")
+
+#boxplot of estimates
+ggplot() +
+    geom_point(data = predicted_kelp_mod, aes(x = group, y = predicted, color = x), position = position_dodge(0.5)) +
+  geom_errorbar(data = predicted_kelp_mod, aes(x = group, ymin = conf.low, ymax = conf.high, color = x), position = position_dodge(0.5), width = .1) +
+  
+  geom_point(data = kelp_processed, aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), position = position_dodge(0.5), alpha = 0.1) +
+  
+  labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+  theme_classic() +
   ylab("% Change Kelp Grazed") +
   labs(fill = "Predator treatment")
 ```
@@ -237,6 +248,67 @@ ggplot(predicted_crev_mod, aes(group, predicted, fill = x)) +
 ```
 
 Again, due to overlapping error bars and non-significant fixed effects, there are no clear trends for crevice use by urchins dependent on source habitat/predator treatment.
+
+#### Urchins associated with kelp
+
+\% of urchins in a tank averaged over a trial where urchins are touching kelp (mouths over kelp) - raw data.
+
+```{r}
+#| layout-ncol: 2
+
+#boxplot of touching kelp
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = Urch_habitat_treatment, y = trial_avg_pcnt_on_kelp, 
+               fill =  Pred_treatment)) +
+  labs(title = "Box plot of % of urchins on kelp") +
+  theme_classic()
+
+```
+
+#### Urchin spatial distribution in tank
+
+Boxplots below show urchin distribution in tank at varying distances from the inflow. Urchins have a baseline tendency to be distributed near the inflow, which should be taken into account when looking at distribution when a star is/isn't present.
+
+```{r}
+#boxplot of urchin distribution separated by treatment 
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = slice, y = urchin_slice_count, color = Treatment, fill = Treatment, alpha = 0.2)) +
+  labs(title = "Urchin counts at different distances (in pie slices) from inflow",
+       xlab = "Slices away from inflow",
+       ylab = "Urchin slice count",
+       caption = "Note: half slices are where crevices are located") +
+  theme_classic()
+```
+
+```{r}
+#| layout-ncol: 2
+
+#currently, slices include half slices which are for crev, removing this for model
+urch_count_non_crev <- behavior_processed %>%
+  filter(slice %in% c(1,2,3,4,5,6,7,8))
+
+urch_slice_mod <- glmmTMB::glmmTMB(urchin_slice_count ~ 
+  
+                        Urch_habitat_treatment + 
+                        Pred_treatment + 
+                        slice +
+                        Urch_habitat_treatment*Pred_treatment*slice +
+                        
+                        (1| Trial/Tank),  
+                      
+                      data = urch_count_non_crev,
+                      
+                      family = gaussian(link = "identity"))
+
+sjPlot::tab_model(urch_slice_mod)
+
+predicted_urch_slice_mod <- ggpredict(model = urch_slice_mod, terms = c("Pred_treatment","Urch_habitat_treatment", "slice"))
+
+#need to format this more - and also add urchin source hab treatment somehow.
+ggplot(predicted_urch_slice_mod, aes(facet, predicted, fill = x)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) 
+```
 
 ## Key takeaways:
 

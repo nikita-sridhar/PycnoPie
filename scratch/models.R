@@ -212,6 +212,67 @@ b6 <- glmmTMB::glmmTMB(pcnt_in_crev ~
 
 sjPlot::tab_model(b6)
 
+#b7 - urch associated w kelp - model won't run - bc of 0 inflation?
+ggplot(behavior_processed, aes(x=pcnt_on_kelp))+
+  geom_histogram() +
+  facet_wrap(vars(Treatment))
+
+b7 <- glmmTMB::glmmTMB(pcnt_on_kelp ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank),  
+                       
+                       data = behavior_processed,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(b7)
+
+#b8 - urchin distrbution wrt inflow
+#a version - urchin count at inflow (slices 1 and 2) as response variable, see how this varies across treatments
+#b version - urchin count as response variable, treatments and slice/dist from inflow as FE (but adding 3 way int terms is funky - instead try to combine this into response var as above)
+
+urch_count_at_inflow <- behavior_processed %>%
+  filter(slice %in% c(1,2))
+#currently, slices include half slices which are for crev, removing this for model
+urch_count_non_crev <- behavior_processed %>%
+  filter(slice %in% c(1,2,3,4,5,6,7,8))
+
+
+b8a <- glmmTMB::glmmTMB(urchin_slice_count ~ 
+                         
+                         Urch_habitat_treatment + 
+                         Pred_treatment + 
+                         Urch_habitat_treatment*Pred_treatment +
+                         
+                         (1| Trial/Tank),  
+                       
+                       data = urch_count_at_inflow,
+                       
+                       family = gaussian(link = "identity"))
+
+sjPlot::tab_model(b8a)
+
+
+b8b <- glmmTMB::glmmTMB(urchin_slice_count ~ 
+  
+                        Urch_habitat_treatment + 
+                        Pred_treatment + 
+                        slice +
+                        Urch_habitat_treatment*Pred_treatment*slice +
+                        
+                        (1| Trial/Tank),  
+                      
+                      data = urch_count_non_crev,
+                      
+                      family = gaussian(link = "identity"))
+
+sjPlot::tab_model(b8b)
+#note: pred treatment is only sig when slice added as a 3-way interaction term. weird that random effect for tank/trial is 0....
+
 #check assumptions-------------------------------------------------------------
 
 b1_residuals <- DHARMa::simulateResiduals(b1)

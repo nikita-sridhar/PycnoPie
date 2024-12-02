@@ -26,33 +26,28 @@ behavior_processed <- behavior_cleaned %>%
          up_dn_pyc2 = ifelse(slice < pycno2_slice , 
                              "upstream",
                              "downstream")) %>%
-  
-  #adding variance of pie slices
-  group_by(Trial, Treatment, Day_numrecord) %>%
-  mutate(variance_of_urch_distrib = var(urchin_slice_count, na.rm = TRUE), #one value per tank
-         var_to_mean = variance_of_urch_distrib/mean(urchin_slice_count)) %>%
-  ungroup() %>%
-  #var-to-mean at trial scale
-  group_by(Trial, Treatment) %>%
-  mutate(trial_avg_var_to_mean = mean(var_to_mean)) %>%
-  ungroup() %>%
+
   
   #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
   mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
          dist_slice_pyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc2),
          up_dn_pyc1 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc1),
          up_dn_pyc2 = case_when(Pred_treatment == "Control" ~ "upstream", .default = up_dn_pyc2)) %>%
-    
   
-  #adding crevice use - pcnt of urch in crevice
+  #adding variance of pie slices + crevice use
   group_by(Trial, Treatment, Day_numrecord) %>%
-    mutate(pcnt_in_crev = sum(crev_count, na.rm=TRUE)/Total_num_urchin *100)  %>%  
+  mutate(variance_of_urch_distrib = var(urchin_slice_count, na.rm = TRUE), #one value per tank
+         var_to_mean = variance_of_urch_distrib/mean(urchin_slice_count),
+         pcnt_in_crev = sum(crev_count, na.rm=TRUE)/Total_num_urchin *100,
+         pcnt_on_kelp = mean(Num_urch_on_kelp, na.rm = TRUE)/Total_num_urchin *100) %>%
   ungroup() %>%
   
-  #crevice use - averaged between time points (trial scale)
+  #averaged between time points (trial scale)
   group_by(Trial, Treatment) %>%
   mutate(trial_avg_pcnt_in_crev = mean(pcnt_in_crev),
-         trial_sd_pcnt_in_crev = sd(trial_avg_pcnt_in_crev, na.rm = TRUE)) %>%
+         trial_sd_pcnt_in_crev = sd(trial_avg_pcnt_in_crev, na.rm = TRUE),
+         trial_avg_var_to_mean = mean(var_to_mean),
+         trial_avg_pcnt_on_kelp = mean(pcnt_on_kelp)) %>%
   ungroup()
 
 
@@ -102,6 +97,7 @@ kelp_processed$dist_slice_avgpyc1 <- as.numeric(kelp_processed$dist_slice_avgpyc
 kelp_processed$dist_slice_avgpyc2 <- as.numeric(kelp_processed$dist_slice_avgpyc2)
 
 behavior_processed$Urch_habitat_treatment <- as.factor(behavior_processed$Urch_habitat_treatment)
+behavior_processed$slice <- as.factor(behavior_processed$slice)
 behavior_processed$Pred_treatment <- as.factor(behavior_processed$Pred_treatment)
 behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
 behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)

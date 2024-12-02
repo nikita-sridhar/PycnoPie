@@ -5,7 +5,6 @@
 #' Code for cleaning up data for PycnoPie mesocosm experiment (ran in Sitka during summer 2024) to determine how Pycnopodia
 #' affect grazing rates of red urchins from urchin barrens and kelp forests.
 
-
 #loading libraries
 library(tidyverse)
 library(here)
@@ -41,7 +40,7 @@ behavior1$Num_urch_CREV5 <- as.double(behavior1$Num_urch_CREV5)
 behavior_cleaned <- behavior1 %>%
   pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "location", values_to = "location_count") %>% 
  
-   #changing crev locations to pie slice location
+   #changing crev locations to pie slice location 
   mutate(crev_count = case_when(grepl("CREV",location) ~ location_count),
          location = recode(location, "Num_urch_CREV1" = ".5_Outer_bottom"),
          location = recode(location, "Num_urch_CREV2" = "2.5_Outer_bottom"),

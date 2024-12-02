@@ -70,6 +70,17 @@ ggplot(behavior_processed,
   
   theme_classic()
 
+#boxplot of urchin distribution separated by treatment 
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = slice, y = urchin_slice_count, color = Treatment, fill = Treatment, alpha = 0.2)) +
+  labs(title = "Urchin counts at different distances (in pie slices) from inflow",
+       xlab = "Slices away from inflow",
+       ylab = "Urchin slice count",
+       caption = "Note: half slices are where crevices are located") +
+  theme_classic()
+ 
+
+
 
 #VARIANCE TO MEAN RATIO of urchin distribution over treatments
 #NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
@@ -136,3 +147,12 @@ ggplot(behavior_processed) +
                fill = Urch_habitat_treatment)) +
   labs(title = "Box plot of % of urchins in crevice") +
   theme_classic()
+
+#boxplot of touching kelp
+ggplot(behavior_processed) +
+  geom_boxplot(aes(x = Urch_habitat_treatment, y = trial_avg_pcnt_on_kelp, 
+                   fill =  Pred_treatment)) +
+  labs(title = "Box plot of % of urchins on kelp") +
+  theme_classic()
+
+
