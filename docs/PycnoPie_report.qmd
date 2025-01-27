@@ -38,8 +38,11 @@ library(effects)
 #| message: false
 #| echo: false
 
-source(here::here("./scripts/00_cleaning.R"))
-source(here::here("./scripts/01_manipulation.R"))
+#source(here::here("./scripts/00_cleaning.R"))
+#source(here::here("./scripts/01_manipulation.R"))
+
+kelp_processed <- read_csv("data/manipulated/processed_kelp/kelp_processed.csv")
+behavior_processed <- read_csv("data/manipulated/processed_behavior/behavior_processed.csv")
 
 ```
 
@@ -49,6 +52,7 @@ source(here::here("./scripts/01_manipulation.R"))
 
 ```{r}
 #| layout-ncol: 2
+#| label: raw-kelp
 
 #kelp grazed by predator/urchin treatment
 ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, fill = Pred_treatment) ) +
@@ -65,6 +69,7 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 
 ```{r}
 #| layout-ncol: 2
+#| label: model-kelp
 
 #building model
 kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~ 
@@ -100,7 +105,7 @@ ggplot() +
   
   geom_point(data = kelp_processed, aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), position = position_dodge(0.5), alpha = 0.1) +
   
-  labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+  labs(title = "Predicted values of % kelp grazed from GLMM overlayed with raw data", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
   theme_classic() +
   ylab("% Change Kelp Grazed") +
   labs(fill = "Predator treatment")
@@ -118,6 +123,7 @@ Variance to mean of 1 = random, \>1 = clumped, \<1 = uniform
 
 ```{r}
 #| layout-ncol: 2
+#| label: raw-bhvr-variance
 
 #VARIANCE TO MEAN RATIO of urchin distribution over treatments
 #NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
@@ -152,6 +158,7 @@ ggplot(behavior_processed,
 
 ```{r}
 #| layout-ncol: 2
+#| label: mod-bhvr-variance
 
 var2mean_mod <- glmmTMB::glmmTMB(var_to_mean ~ 
                          
@@ -187,6 +194,7 @@ The percentage of urchins in a tank in a crevice averaged over behavioral assays
 
 ```{r}
 #| layout-ncol: 3
+#| label: raw-bhvr-crev
 
 ggplot(behavior_processed) +
   geom_histogram(aes(x = trial_avg_pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
@@ -220,6 +228,7 @@ ggplot(behavior_processed) +
 
 ```{r}
 #| layout-ncol: 2
+#| label: mod-bhvr-crev
 
 crev_mod <- glmmTMB::glmmTMB(pcnt_in_crev ~ 
                          
@@ -255,6 +264,7 @@ Again, due to overlapping error bars and non-significant fixed effects, there ar
 
 ```{r}
 #| layout-ncol: 2
+#| label: raw-bhvr-onkelp
 
 #boxplot of touching kelp
 ggplot(behavior_processed) +
@@ -270,6 +280,8 @@ ggplot(behavior_processed) +
 Boxplots below show urchin distribution in tank at varying distances from the inflow. Urchins have a baseline tendency to be distributed near the inflow, which should be taken into account when looking at distribution when a star is/isn't present.
 
 ```{r}
+#| label: raw-bhvr-urchdistribution
+
 #boxplot of urchin distribution separated by treatment 
 ggplot(behavior_processed) +
   geom_boxplot(aes(x = slice, y = urchin_slice_count, color = Treatment, fill = Treatment, alpha = 0.2)) +
@@ -282,6 +294,9 @@ ggplot(behavior_processed) +
 
 ```{r}
 #| layout-ncol: 2
+#| echo: false
+#| message: false
+#| label: mod-bhvr-urchdistribution
 
 #currently, slices include half slices which are for crev, removing this for model
 urch_count_non_crev <- behavior_processed %>%

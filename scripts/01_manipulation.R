@@ -105,8 +105,8 @@ behavior_processed$Day_numrecord <- as.factor(behavior_processed$Day_numrecord)
 
   
 #write CSVs
-#write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
-#write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
+write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
+write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
 
 
 
