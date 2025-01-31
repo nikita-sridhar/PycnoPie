@@ -41,8 +41,8 @@ library(effects)
 #source(here::here("./scripts/00_cleaning.R"))
 #source(here::here("./scripts/01_manipulation.R"))
 
-kelp_processed <- read_csv("data/manipulated/processed_kelp/kelp_processed.csv")
-behavior_processed <- read_csv("data/manipulated/processed_behavior/behavior_processed.csv")
+kelp_processed <- read_csv(here::here("data/manipulated/processed_kelp/kelp_processed.csv"))
+behavior_processed <- read_csv(here::here("data/manipulated/processed_behavior/behavior_processed.csv"))
 
 ```
 
@@ -88,27 +88,57 @@ sjPlot::tab_model(kelp_mod)
 
 predicted_kelp_mod <- ggpredict(model = kelp_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
 
-#bar chart of estimates
-ggplot(predicted_kelp_mod, aes(group, predicted, fill = x)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
-  labs(title = "Predicted values of % kelp grazed from GLMM", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+#calculating SD by group for raw data for error bars
+kelp_processed_sd <- kelp_processed %>%
+  group_by(Urch_habitat_treatment, Pred_treatment) %>%
+  mutate(sd = sd(pcnt_grazed)) %>%
+  ungroup()
+
+#bar chart of model estimates with error bars from raw data's standard error
+ggplot(predicted_kelp_mod, 
+       aes(group, predicted, fill = x)) +
+  
+  geom_bar(stat = "identity", 
+           position = position_dodge()) +
+  
+  geom_errorbar(data = kelp_processed_sd,
+    aes(ymin = mean(pcnt_grazed)-sd, ymax = mean(pcnt_grazed)+sd), 
+                position=position_dodge()) +
+ 
+   labs(title = "Predicted values of % kelp grazed from GLMM", 
+        x = "Urchin habitat", y = "% kelp grazed", 
+        fill = "Pred treatment") +
+ 
   theme_classic() +
   scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
   ylab("% Change Kelp Grazed") +
   labs(fill = "Predator treatment")
 
-#boxplot of estimates
+#overlay of mean model estimate with raw data - defeats purpose of visualizing model estimate
 ggplot() +
-    geom_point(data = predicted_kelp_mod, aes(x = group, y = predicted, color = x), position = position_dodge(0.5)) +
-  geom_errorbar(data = predicted_kelp_mod, aes(x = group, ymin = conf.low, ymax = conf.high, color = x), position = position_dodge(0.5), width = .1) +
   
-  geom_point(data = kelp_processed, aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), position = position_dodge(0.5), alpha = 0.1) +
+  #model plot (mean GLMM value)
+    geom_point(data = predicted_kelp_mod, 
+               aes(x = group, y = predicted, color = x), 
+               position = position_dodge(0.5)) +
+  
+  geom_errorbar(data = kelp_processed, 
+                aes(x = Urch_habitat_treatment, ymin = conf.low, ymax = conf.high, color = x), 
+                position = position_dodge(0.5), 
+                width = .1) +
+
+  #overlayed raw data
+  geom_point(data = kelp_processed, 
+             aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), 
+             position = position_dodge(0.5), 
+             alpha = 0.1) +
   
   labs(title = "Predicted values of % kelp grazed from GLMM overlayed with raw data", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
   theme_classic() +
   ylab("% Change Kelp Grazed") +
   labs(fill = "Predator treatment")
+
+
 ```
 
 The fixed effects of urchin habitat, predator treatment, and the interaction term are all significant in the GLMM for % kelp grazed. The plot of predicted values from the GLMM shows clearer trends in grazing than the boxplot of raw data. Both kelp forest and barren urchins reduce grazing around a star. Urchins from a barren reduce grazing more than urchins from a kelp forest. The reduction of grazing of kelp forest urchins around a star may be enough to allow for net kelp growth (note negative bar - this may be due to mucus production or growth; regardless, grazing suppression in this treatment was sufficient to allow for positive increase in kelp mass).
@@ -134,7 +164,7 @@ ggplot(behavior_processed,
            fill = Pred_treatment)) +
   
   geom_bar(stat = "identity", position = position_dodge()) +
-
+  
   labs(title = "Trial avg variance-to-mean ratio of urchin slice counts",
        x = "Treatment",
        y = "Trial avg variance-to-mean ratio of urchin counts") +
