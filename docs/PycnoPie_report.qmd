@@ -63,6 +63,15 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
   xlab("Urchin habitat ") +
   labs(fill = "Predator treatment")
 
+#calculating SD by group for raw data for error bars
+kelp_processed_sd <- kelp_processed %>%
+  group_by(Urch_habitat_treatment, Pred_treatment) %>%
+  mutate(sd = sd(pcnt_grazed)) %>%
+  ungroup() %>%
+  mutate(across(c(Urch_habitat_treatment, Pred_treatment), as.factor)) %>%
+  unique()
+
+
 ```
 
 #### **Model data:** General linear mixed model for % change in kelp grazed by urchins
@@ -70,6 +79,10 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 ```{r}
 #| layout-ncol: 2
 #| label: model-kelp
+
+#converting to factor
+kelp_processed <- kelp_processed %>% 
+  mutate(across(c(Pred_treatment, Urch_habitat_treatment), as.factor))
 
 #building model
 kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~ 
@@ -86,17 +99,29 @@ kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~
 
 sjPlot::tab_model(kelp_mod)
 
-predicted_kelp_mod <- ggpredict(model = kelp_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
+predicted_kelp_mod <- ggpredict(model = kelp_mod, 
+                                terms = c("Pred_treatment", 
+                                          "Urch_habitat_treatment")) %>% 
+  rename(Pred_treatment = x,
+         Urch_habitat_treatment = group) 
+  
 
-#calculating SD by group for raw data for error bars
-kelp_processed_sd <- kelp_processed %>%
-  group_by(Urch_habitat_treatment, Pred_treatment) %>%
-  mutate(sd = sd(pcnt_grazed)) %>%
-  ungroup()
+  #merging model estimates w sd from raw data for error bars
+kelp_processed_sd 
+  
+kelp_mod_withsd <-  merge(x = predicted_kelp_mod, y = predicted_kelp_mod, kelp_processed_sd[ , "sd"], by = c("Pred_treatment","Urch_habitat_treatment"), all.x=TRUE)
+
+  
+  cbind(kelp_processed_sd,"Pred_treatment","Urch_habitat_treatment","sd"], 
+        by = c("Pred_treatment", "Urch_habitat_treatment"))
+
+merge(kelp_processed_sd["sd"], 
+        by = c("Pred_treatment", "Urch_habitat_treatment"))
+
 
 #bar chart of model estimates with error bars from raw data's standard error
 ggplot(predicted_kelp_mod, 
-       aes(group, predicted, fill = x)) +
+       aes(x = Urch_habitat_treatment, y = predicted, fill = Pred_treatment)) +
   
   geom_bar(stat = "identity", 
            position = position_dodge()) +
@@ -119,11 +144,11 @@ ggplot() +
   
   #model plot (mean GLMM value)
     geom_point(data = predicted_kelp_mod, 
-               aes(x = group, y = predicted, color = x), 
+               aes(x = group, y = predicted, color = Pred_treatment), 
                position = position_dodge(0.5)) +
   
   geom_errorbar(data = kelp_processed, 
-                aes(x = Urch_habitat_treatment, ymin = conf.low, ymax = conf.high, color = x), 
+                aes(x = Urch_habitat_treatment, ymin = conf.low, ymax = conf.high, color = Pred_treatment), 
                 position = position_dodge(0.5), 
                 width = .1) +
 
