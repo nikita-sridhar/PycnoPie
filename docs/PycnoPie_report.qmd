@@ -66,7 +66,7 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 #calculating SD by group for raw data for error bars
 kelp_processed_sd <- kelp_processed %>%
   group_by(Urch_habitat_treatment, Pred_treatment) %>%
-  mutate(sd = sd(pcnt_grazed)) %>%
+  mutate(raw_sd = sd(pcnt_grazed)) %>%
   ungroup() %>%
   mutate(across(c(Urch_habitat_treatment, Pred_treatment), as.factor)) %>%
   unique()
@@ -106,21 +106,15 @@ predicted_kelp_mod <- ggpredict(model = kelp_mod,
          Urch_habitat_treatment = group) 
   
 
-  #merging model estimates w sd from raw data for error bars
-kelp_processed_sd 
+#merging model estimates w sd from raw data for error bars
+
+kelp_mod_withsd <- kelp_processed_sd %>%
+  distinct(Pred_treatment, Urch_habitat_treatment, raw_sd) %>%
+  merge(predicted_kelp_mod)
   
-kelp_mod_withsd <-  merge(x = predicted_kelp_mod, y = predicted_kelp_mod, kelp_processed_sd[ , "sd"], by = c("Pred_treatment","Urch_habitat_treatment"), all.x=TRUE)
-
-  
-  cbind(kelp_processed_sd,"Pred_treatment","Urch_habitat_treatment","sd"], 
-        by = c("Pred_treatment", "Urch_habitat_treatment"))
-
-merge(kelp_processed_sd["sd"], 
-        by = c("Pred_treatment", "Urch_habitat_treatment"))
-
 
 #bar chart of model estimates with error bars from raw data's standard error
-ggplot(predicted_kelp_mod, 
+ggplot(kelp_mod_withsd, 
        aes(x = Urch_habitat_treatment, y = predicted, fill = Pred_treatment)) +
   
   geom_bar(stat = "identity", 
