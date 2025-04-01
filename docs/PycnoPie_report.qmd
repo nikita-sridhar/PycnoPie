@@ -68,6 +68,7 @@ ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_
 kelp_processed_sd <- kelp_processed %>%
   group_by(Urch_habitat_treatment, Pred_treatment) %>%
   mutate(raw_sd = sd(pcnt_grazed),
+         raw_se = sd(pcnt_grazed)/sqrt(length(pcnt_grazed)),
          raw_mean = mean(pcnt_grazed)) %>%
   ungroup() %>%
   mutate(across(c(Urch_habitat_treatment, Pred_treatment), as.factor)) %>%
@@ -81,15 +82,15 @@ ggplot(kelp_processed_sd,
            position = position_dodge()) +
   
   geom_errorbar(data = kelp_processed_sd,
-    aes(ymin = raw_mean-raw_sd, ymax =raw_mean+raw_sd), 
+    aes(ymin = raw_mean-raw_se, ymax =raw_mean+raw_se), 
                 position=position_dodge()) +
  
-   labs(title = "Predicted values of % kelp grazed from raw data", 
+   labs(title = "Kelp grazed by urchins from different source habitats", 
         x = "Urchin habitat", y = "% kelp grazed", 
         fill = "Pred treatment") +
  
   theme_classic() +
-  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  scale_fill_manual(values = c('#5A5A5A','#c994c7')) +
   ylab("% Change Kelp Grazed") +
   labs(fill = "Predator treatment")
 
