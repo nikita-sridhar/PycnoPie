@@ -10,389 +10,232 @@ date: last-modified
 
 *Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found [here](https://github.com/nikita-sridhar/PycnoPie/tree/main/scripts).*
 
+**Note: run \_\_main.R first! *need to figure this out*** or just run 00_cleaning and 00_manipulation
+
+```{r}
+#default formatting for all tables in this report
+set_flextable_defaults(
+  font.size = 11, font.family = "Arial",
+  font.color = "#333333",
+  table.layout = "fixed",
+  border.color = "gray",
+  padding.top = 3, padding.bottom = 3,
+  padding.left = 4, padding.right = 4)
+```
+
 ```{r}
 #| echo: false
-
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
-```
-
-```{r}
-#| message: false
-#| echo: false
-
-#loading libraries
-library(tidyverse)
-library(here)
-library(googlesheets4)
-library(strex)
-library(lme4)
-library(performance)
-library(sjPlot)
-library(glmmTMB)
-library(DHARMa)
-library(ggeffects)
-library(effects)
-```
-
-```{r}
-#| message: false
-#| echo: false
-
-#source(here::here("./scripts/00_cleaning.R"))
-#source(here::here("./scripts/01_manipulation.R"))
-
-kelp_processed <- read_csv(here::here("data/manipulated/processed_kelp/kelp_processed.csv"))
-behavior_processed <- read_csv(here::here("data/manipulated/processed_behavior/behavior_processed.csv"))
-
 ```
 
 ## Kelp grazing data
 
-#### **Raw data:** % change in kelp grazed by urchins
-
-```{r}
-#| layout-ncol: 2
-#| label: raw-kelp
-
-#kelp grazed by predator/urchin treatment
-ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, fill = Pred_treatment) ) +
-  geom_boxplot() +
-  theme_classic() +
-  scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
-  ylab("% Change Kelp Grazed") +
-  xlab("Urchin habitat ") +
-  labs(fill = "Predator treatment")
-
-
-#calculating SD by group for raw data for error bars
-kelp_processed_sd <- kelp_processed %>%
-  group_by(Urch_habitat_treatment, Pred_treatment) %>%
-  mutate(raw_sd = sd(pcnt_grazed),
-         raw_se = sd(pcnt_grazed)/sqrt(length(pcnt_grazed)),
-         raw_mean = mean(pcnt_grazed)) %>%
-  ungroup() %>%
-  mutate(across(c(Urch_habitat_treatment, Pred_treatment), as.factor)) %>%
-  unique()
-
-#bar chart (made this bc it is same as model code but for raw data - wanted to see if plots look different or not)
-ggplot(kelp_processed_sd, 
-       aes(x = Urch_habitat_treatment, y = raw_mean, fill = Pred_treatment)) + #used raw_mean bc pre-calculated and looks like model graph.
-  
-  geom_bar(stat = "identity", 
-           position = position_dodge()) +
-  
-  geom_errorbar(data = kelp_processed_sd,
-    aes(ymin = raw_mean-raw_se, ymax =raw_mean+raw_se), 
-                position=position_dodge()) +
- 
-   labs(title = "Kelp grazed by urchins from different source habitats", 
-        x = "Urchin habitat", y = "% kelp grazed", 
-        fill = "Pred treatment") +
- 
-  theme_classic() +
-  scale_fill_manual(values = c('#5A5A5A','#c994c7')) +
-  ylab("% Change Kelp Grazed") +
-  labs(fill = "Predator treatment")
-
-```
-
-#### **Model data:** General linear mixed model for % change in kelp grazed by urchins
+#### **Building** models and contrasts
 
 ```{r}
 #| layout-ncol: 2
 #| label: model-kelp
 
-#converting to factor
-kelp_processed <- kelp_processed %>% 
-  mutate(across(c(Pred_treatment, Urch_habitat_treatment), as.factor))
+#releveling reference groups 
+kelp_processed$Urch_habitat_treatment <- relevel(kelp_processed$Urch_habitat_treatment, ref = "KF")
+kelp_processed$Pred_treatment <- relevel(kelp_processed$Pred_treatment, ref = "Control")
+
+
+#investigating distributions 
+ggplot(kelp_processed, aes(x = weight_diff)) +
+  geom_density() +
+  facet_wrap(vars(Treatment))
+
+
+#test for normality
+qqPlot(kelp_processed$weight_diff)
+
 
 #building model
-kelp_mod <- glmmTMB::glmmTMB(pcnt_grazed ~ 
-                         
-                         Urch_habitat_treatment + 
-                         Pred_treatment + 
-                         Urch_habitat_treatment*Pred_treatment +
-                         
-                         (1| Trial/Tank/Kelp_ID),  
-                       
-                       data = kelp_processed,
-                       
-                       family = gaussian(link = "identity"))
+model <- lm(weight_diff ~ 
+                  
+              Pred_treatment + Urch_habitat_treatment + 
+              Pred_treatment*Urch_habitat_treatment,  
+                
+              data = kelp_processed)
 
-sjPlot::tab_model(kelp_mod)
+summary(model)
 
-predicted_kelp_mod <- ggpredict(model = kelp_mod, 
-                                terms = c("Pred_treatment", 
-                                          "Urch_habitat_treatment")) %>% 
-  rename(Pred_treatment = x,
-         Urch_habitat_treatment = group) 
+#anova formatted in a flextable
+anova(model) %>%
+  data.frame() %>%
+  as.tibble(rownames = " ", colnames = " ") %>%
+  mutate(Pr..F. = ifelse(Pr..F. < 0.0001, "< 0.0001",
+                          round(Pr..F., 3)),
+        " " = case_when(row_number() == 1 ~ "Predator treatment",
+                        row_number() == 2 ~"Urchin source habitat",
+                        row_number() == 3 ~"Predator treatment:Urchin source habitat",
+                        row_number() == 4 ~"Residuals")) %>%
+
+  flextable() %>%
+  #header formatting
+  set_header_labels(Df = 'd.f.',
+                    Sum.Sq = "sum sq",
+                    Mean.Sq = "mean sq",
+                    F.value = "f-value",
+                    Pr..F. = "p-value") %>%
+  bold(i = 1, part = "header") %>%
+  align(align = 'center', part = 'header') %>%
+  #body formatting
+  colformat_double(j = c(2:6), digits = 3) %>%
+  bold(~Pr..F. < 0.05, j = "Pr..F.") %>%
+  vline_left() %>%
+  vline_right() %>%
+  
+  autofit()  
+  
+```
+
+**Post-hoc tests**
+
+```{r}
+#estimated marginal means
+EMM <- emmeans(model, ~ Pred_treatment + Urch_habitat_treatment + Pred_treatment*Urch_habitat_treatment)
+EMM
+
+#specifying weights for contrasts
+contrast_weights <- list(
+  "a) Control kelp forest vs. Control barren" = c(control_kf = 1,
+                                             star_kf = 0,
+                                             control_b = -1,
+                                             star_b = 0),
+  
+  "b) Star kelp forest vs. Star barren" = c(control_kf = 0,
+                                       star_kf = 1,
+                                       control_b = 0,
+                                       star_b = -1),
+  
+  "c) Control kelp forest vs. Star kelp forest" = c(control_kf = 1,
+                                               star_kf = -1,
+                                               control_b = 0,
+                                               star_b = 0),
+  
+  "d) Control barren vs. Star barren" = c(control_kf = 0,
+                                       star_kf = 0,
+                                       control_b = 1,
+                                       star_b = -1)
+  
+)
+
+#pairwise contrasts w above weighting scheme
+mod_contrasts <- contrast(EMM, contrast_weights)
+
+#flextable formatting
+ft <- mod_contrasts %>% 
+  
+  data.frame() %>%  
+  mutate(p.value = ifelse(p.value < 0.0001, "< 0.0001",
+                          round(p.value,3))) %>%
+  #hypothesis column
+   mutate("Hypothesis" = c("Urchins from kelp forests will graze less than urchins from barrens",
+                          "Urchins in the presence of a star will graze less when they are from kelp forests compared to urchins from barrens",
+                          "Urchins from kelp forests will graze more when they are not around a star",
+                          "Urchins from barrens will graze more when they are not around a star"),.after = "contrast") %>% 
+  
+  flextable()  %>%
+  #header formatting
+  set_header_labels(contrast = 'Contrast',
+                    emmean = 'Estimate',
+                    SE = 's.e.',
+                    df = 'd.f.',
+                    t.ratio = "t-ratio",
+                    p.value = "p-value") %>%
+  bold(i = 1, part = "header") %>%
+  italic(part = "all", j = 1) %>%
+
+  align(align = 'center', part = 'header') %>%
+
+  #body formatting
+  #change size of hypothesis column 
+  fontsize(j = 2, size = 8, part = "body") %>%
+  colformat_double(j = c(3:7), digits = 2) %>%
+  bold(~ p.value < 0.05, j = "p.value") %>%
+  vline_left() %>%
+  vline_right() %>%
+  
+  autofit()  
+
+ft
+
   
 
-#merging model estimates w sd from raw data for error bars
+```
 
-kelp_mod_withsd <- kelp_processed_sd %>%
-  distinct(Pred_treatment, Urch_habitat_treatment, raw_sd, raw_mean) %>%
-  merge(predicted_kelp_mod)
-  
-################
-#    PLOTS.   #
-################
+Plots:
 
-#bar chart of model estimates with error bars from raw data's standard error
-ggplot(kelp_mod_withsd, 
-       aes(x = Urch_habitat_treatment, y = predicted, fill = Pred_treatment)) +
+```{r}
+#plots of raw data:
+#releveling reference groups (this is just bc i manually labelled x axis formatting stuff based on indexing position, and first is barren second is kf)
+kelp_processed$Urch_habitat_treatment <- relevel(kelp_processed$Urch_habitat_treatment, ref = "B")
+kelp_processed$Pred_treatment <- relevel(kelp_processed$Pred_treatment, ref = "Control")
+
+#bar chart 
+
+dw <- 0.9 # dodge width
+off <- dw / 4
+
+ggplot(kelp_processed, 
+       aes(x = Urch_habitat_treatment, y = weight_diff_mean, 
+           fill = Pred_treatment)) + 
   
   geom_bar(stat = "identity", 
-           position = position_dodge()) +
+           position = position_dodge(width=dw)) +
   
-  geom_errorbar(data = kelp_mod_withsd,
-    aes(ymin = raw_mean-raw_sd, ymax =raw_mean+raw_sd), 
-                position=position_dodge()) +
- 
-   labs(title = "Predicted values of % kelp grazed from GLMM", 
-        x = "Urchin habitat", y = "% kelp grazed", 
+  geom_errorbar(aes(ymin = weight_diff_mean-weight_diff_se, 
+                    ymax =weight_diff_mean+weight_diff_se),
+                position= position_dodge(width=dw),
+                width = 0.1) +
+  
+   labs(title = "Kelp grazed by urchins from different source habitats", 
+        x = "Urchin habitat", y = "Mean difference in kelp weight (g)", #specify across the 12 blades in a tank
         fill = "Pred treatment",
-        caption = "Note: error bars are made with respect to SD and mean of raw data") +
+        caption = "* p < 0.05, ** p < 0.01, *** p < 0.0001 ") +
  
   theme_classic() +
-  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
-  ylab("% Change Kelp Grazed") +
-  labs(fill = "Predator treatment")
-
-#overlay of mean model estimate with raw data - defeats purpose of visualizing model estimate
-ggplot() +
+  theme(plot.caption = element_text(color = "grey40", hjust = 1.5)) +
   
-  #model plot (mean GLMM value)
-    geom_point(data = predicted_kelp_mod, 
-               aes(x = Urch_habitat_treatment, y = predicted, color = Pred_treatment), 
-               position = position_dodge(0.5)) +
+  scale_fill_manual(values = c('#5A5A5A','#c994c7')) +
+  ylab("Mean difference in kelp weight (g)") +
+  scale_x_discrete(labels = c("Barren","Kelp forest")) +
+  labs(fill = "Predator treatment") +
   
-  #overlayed raw data
-  geom_point(data = kelp_processed, 
-             aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), 
-             position = position_dodge(0.5), 
-             alpha = 0.1) +
+  #significance bars:
+  #Barren control vs. barren star (***)
+  geom_bracket(
+    inherit.aes = FALSE,
+    xmin = 1 - off,  # barren control
+    xmax = 1 + off,  # barren star
+    y.position = 9.9,
+    label = "***",
+    color = "grey40", alpha = 0.7, size = 0.5, vjust = 0.5
+  ) +
+  #Barren control vs. kelp forest control (***)
+  geom_bracket(
+    inherit.aes = FALSE,
+    xmin = 1 - off,  # barren control
+    xmax = 2 - off,  # kelp forest control
+    y.position = 11,
+    label = "***",
+    color = "grey40", alpha = 0.7, size = 0.5, vjust = 0.5
+  ) +
+  #Barren star vs. kelp forest star (***)
+  geom_bracket(
+    inherit.aes = FALSE,
+    xmin = 1 + off,  # barren star
+    xmax = 2 + off,  # kelp forest star
+    y.position = 5.3,
+    label = "***",
+    color = "grey40", alpha = 0.7, size = 0.5, vjust = 0.5
+  ) 
   
-  labs(title = "Predicted values of % kelp grazed from GLMM overlayed with raw data", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
-  theme_classic() +
-  ylab("% Change Kelp Grazed") +
-  labs(fill = "Predator treatment")
 
 
-```
 
-The fixed effects of urchin habitat, predator treatment, and the interaction term are all significant in the GLMM for % kelp grazed. The plot of predicted values from the GLMM shows clearer trends in grazing than the boxplot of raw data. Both kelp forest and barren urchins reduce grazing around a star. Urchins from a barren reduce grazing more than urchins from a kelp forest. The reduction of grazing of kelp forest urchins around a star may be enough to allow for net kelp growth (note negative bar - this may be due to mucus production or growth; regardless, grazing suppression in this treatment was sufficient to allow for positive increase in kelp mass).
-
-## Behavior data
-
-#### **Variance to mean ratio of urchin counts in a tank:**
-
-A metric to assess the clumped vs. uniform vs. random distribution of urchins in a tank, and see how this varies when a star is/isn't present. This was calculated by finding the variance of urchin counts per pie slice in a tank and dividing this by the mean urchin count per pie slice in a tank averaged across behavioral assays in a trial.
-
-Variance to mean of 1 = random, \>1 = clumped, \<1 = uniform
-
-```{r}
-#| layout-ncol: 2
-#| label: raw-bhvr-variance
-
-#VARIANCE TO MEAN RATIO of urchin distribution over treatments
-#NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
-#should i find the variance of the var to mean ratios to find trial scale clustering dynamics?
-ggplot(behavior_processed, 
-       aes(x = Urch_habitat_treatment,
-           y = trial_avg_var_to_mean,
-           fill = Pred_treatment)) +
-  
-  geom_bar(stat = "identity", position = position_dodge()) +
-  
-  labs(title = "Trial avg variance-to-mean ratio of urchin slice counts",
-       x = "Treatment",
-       y = "Trial avg variance-to-mean ratio of urchin counts") +
-  
-  theme_classic()
-
-
-ggplot(behavior_processed, 
-       aes(x = Urch_habitat_treatment,
-           y = trial_avg_var_to_mean,
-           fill = Pred_treatment)) +
-  
-  geom_boxplot() +
-  
-  labs(title = "Variance to mean ratio of urchin slices across treatments",
-       x = "Treatment",
-       y = "Variance of percentage of urchins per slice") +
-  
-  theme_classic()
-```
-
-```{r}
-#| layout-ncol: 2
-#| label: mod-bhvr-variance
-
-var2mean_mod <- glmmTMB::glmmTMB(var_to_mean ~ 
-                         
-                         Urch_habitat_treatment + 
-                         Pred_treatment + 
-                         Urch_habitat_treatment*Pred_treatment +
-                         
-                         (1| Trial/Tank),  
-                       
-                       data = behavior_processed,
-                       
-                       family = gaussian(link = "identity"))
-
-sjPlot::tab_model(var2mean_mod)
-
-predicted_var2mean_mod <- ggpredict(model = var2mean_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
-
-ggplot(predicted_var2mean_mod, aes(group, predicted, fill = x)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
-  labs(title = "Predicted values of var to mean ratio from GLMM", x = "Urchin habitat", y = "Var-to-mean ratio", fill = "Pred treatment") +
-  theme_classic() +
-  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
-  ylab("Var-to-mean ratio") +
-  labs(fill = "Predator treatment")
-```
-
-Due to overlapping error bars and non-significant effects of predator treatment in the model, there seems to be no clear effect of star presence on the clumped vs. uniform distribution of urchins in a tank. (Note: need to add error bars to bar chart).
-
-#### **Crevice use**
-
-The percentage of urchins in a tank in a crevice averaged over behavioral assays (at the trial scale).
-
-```{r}
-#| layout-ncol: 3
-#| label: raw-bhvr-crev
-
-ggplot(behavior_processed) +
-  geom_histogram(aes(x = trial_avg_pcnt_in_crev, fill = Pred_treatment),position = "dodge") +
-  facet_wrap(vars(Urch_habitat_treatment, Pred_treatment)) +
-  labs(title = "Histogram for trial avg % of urchins in crevice") +
-  theme_classic()
-
-#bar charts of crevice use (looks same for behavior scale and trial scale)
-ggplot(behavior_processed, 
-       aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev)) +
-  
-  geom_bar(aes(fill = Urch_habitat_treatment), position = position_dodge(), stat = "identity") +
-  
-  geom_errorbar(aes(ymin = trial_avg_pcnt_in_crev-trial_sd_pcnt_in_crev, 
-                ymax = trial_avg_pcnt_in_crev+trial_sd_pcnt_in_crev,
-                color = Urch_habitat_treatment),
-                position = position_dodge()) +
-  
-  labs(title = "Bar chart of % of urchins in crevice") +
-  theme_classic()
-
-#boxplot of crevice use - looks diff for behavior scale
-ggplot(behavior_processed) +
-  geom_boxplot(aes(x = Pred_treatment, y = trial_avg_pcnt_in_crev, 
-               fill = Urch_habitat_treatment)) +
-  labs(title = "Box plot of % of urchins in crevice") +
-  theme_classic()
-
-
-```
-
-```{r}
-#| layout-ncol: 2
-#| label: mod-bhvr-crev
-
-crev_mod <- glmmTMB::glmmTMB(pcnt_in_crev ~ 
-                         
-                         Urch_habitat_treatment + 
-                         Pred_treatment + 
-                         Urch_habitat_treatment*Pred_treatment +
-                         
-                         (1| Trial/Tank),  
-                         
-                         data = behavior_processed,
-                       
-                       family = gaussian(link = "identity"))
-
-sjPlot::tab_model(crev_mod)
-
-predicted_crev_mod <- ggpredict(model = crev_mod, terms = c("Pred_treatment","Urch_habitat_treatment"))
-
-ggplot(predicted_crev_mod, aes(group, predicted, fill = x)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) +
-  labs(title = "Predicted values of var to mean ratio from GLMM", x = "Urchin habitat", y = "Var-to-mean ratio", fill = "Pred treatment") +
-  theme_classic() +
-  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
-  ylab("Var-to-mean ratio") +
-  labs(fill = "Predator treatment")
-```
-
-Again, due to overlapping error bars and non-significant fixed effects, there are no clear trends for crevice use by urchins dependent on source habitat/predator treatment.
-
-#### Urchins associated with kelp
-
-\% of urchins in a tank averaged over a trial where urchins are touching kelp (mouths over kelp) - raw data.
-
-```{r}
-#| layout-ncol: 2
-#| label: raw-bhvr-onkelp
-
-#boxplot of touching kelp
-ggplot(behavior_processed) +
-  geom_boxplot(aes(x = Urch_habitat_treatment, y = trial_avg_pcnt_on_kelp, 
-               fill =  Pred_treatment)) +
-  labs(title = "Box plot of % of urchins on kelp") +
-  theme_classic()
-
-```
-
-#### Urchin spatial distribution in tank
-
-Boxplots below show urchin distribution in tank at varying distances from the inflow. Urchins have a baseline tendency to be distributed near the inflow, which should be taken into account when looking at distribution when a star is/isn't present.
-
-```{r}
-#| label: raw-bhvr-urchdistribution
-
-#boxplot of urchin distribution separated by treatment 
-ggplot(behavior_processed) +
-  geom_boxplot(aes(x = slice, y = urchin_slice_count, color = Treatment, fill = Treatment, alpha = 0.2)) +
-  labs(title = "Urchin counts at different distances (in pie slices) from inflow",
-       xlab = "Slices away from inflow",
-       ylab = "Urchin slice count",
-       caption = "Note: half slices are where crevices are located") +
-  theme_classic()
-```
-
-```{r}
-#| layout-ncol: 2
-#| echo: false
-#| message: false
-#| label: mod-bhvr-urchdistribution
-
-#currently, slices include half slices which are for crev, removing this for model
-urch_count_non_crev <- behavior_processed %>%
-  filter(slice %in% c(1,2,3,4,5,6,7,8))
-
-urch_slice_mod <- glmmTMB::glmmTMB(urchin_slice_count ~ 
-  
-                        Urch_habitat_treatment + 
-                        Pred_treatment + 
-                        slice +
-                        Urch_habitat_treatment*Pred_treatment*slice +
-                        
-                        (1| Trial/Tank),  
-                      
-                      data = urch_count_non_crev,
-                      
-                      family = gaussian(link = "identity"))
-
-sjPlot::tab_model(urch_slice_mod)
-
-predicted_urch_slice_mod <- ggpredict(model = urch_slice_mod, terms = c("Pred_treatment","Urch_habitat_treatment", "slice"))
-
-#need to format this more - and also add urchin source hab treatment somehow.
-ggplot(predicted_urch_slice_mod, aes(facet, predicted, fill = x)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) 
 ```
 
 ## Key takeaways:

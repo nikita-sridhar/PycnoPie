@@ -181,7 +181,17 @@ kelp_processed <- kelp %>%
   
   #changing up dn ratio from inf to 1 for control (for model) and NaN to real NA
   mutate(up_dn_pyc1_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc1_ratio),
-         up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio))
+         up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio)) %>%
+
+#can add this to kelp df if you want inner/outer blade position as a variable
+##blades inside inner ring of tank vs outer ring
+mutate(inner_outer = ifelse(Kelp_ID %in% c(1,2,3,4,5,6,7,8), "outer", "inner"),
+       slice = case_when(Kelp_ID %in% c(1,2,3,4,5,6,7,8) ~ Kelp_ID,
+                         Kelp_ID == 9 ~ 1.5,
+                         Kelp_ID == 10 ~ 3.5,
+                         Kelp_ID == 11 ~ 5.5,
+                         Kelp_ID == 12 ~ 7.5)) 
+
   
 
 ########################

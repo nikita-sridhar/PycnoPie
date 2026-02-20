@@ -1,10 +1,3 @@
-#' Data Manipulation for PycnoPie
-#' AUTHOR: Nikita Sridhar
-#' DATE: 11/13/24
-
-#Run 00_cleaning first, or load behavior_cleaned and kelp_cleaned
-
-
 ###########################
 ###     behavior      ####
 ##########################
@@ -26,7 +19,7 @@ behavior_processed <- behavior_cleaned %>%
          up_dn_pyc2 = ifelse(slice < pycno2_slice , 
                              "upstream",
                              "downstream")) %>%
-
+  
   
   #for model to work - can't be NA - also changing up/dn to up for non pycno treatments (bc has to be something other than NA for model)
   mutate(dist_slice_pyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_pyc1),
@@ -50,11 +43,6 @@ behavior_processed <- behavior_cleaned %>%
          trial_avg_pcnt_on_kelp = mean(pcnt_on_kelp)) %>%
   ungroup()
 
-
-######################################
-#######         kelp           #######
-######################################
-
 #this is for a appending avg pycno pos to kelp data
 behavior_processed_forkelp <- behavior_processed %>%
   group_by(Trial, Treatment) %>% #going from behavioral assay scale to trial scale
@@ -66,30 +54,20 @@ behavior_processed_forkelp <- behavior_processed %>%
   ungroup()
 
 
-#adding summary stats
-kelp_processed <- kelp_cleaned %>%
-  mutate(pcnt_grazed = ((Kelp_weight_before_g - Kelp_weight_after_g)/ 
-                                                          Kelp_weight_before_g)*100) %>%
-  
-  merge(behavior_processed_forkelp, by = c("Treatment", "Trial")) %>%
-  
-  mutate(dist_slice_avgpyc1 = abs(slice - avg_pycno1_slice),
-         dist_slice_avgpyc2 = abs(slice - avg_pycno2_slice), 
-  
-        #this is for model to work - can't be NA - so 100 is far away
-        dist_slice_avgpyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc1),
-        dist_slice_avgpyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc2), 
-  
-        #changing up dn ratio from inf to 1 for control (for model) and NaN to real NA
-        up_dn_pyc1_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc1_ratio),
-        up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio))
-  
-  
-#reformat data to factor for model----------------------------------------------
+#in kelp processed <- kelp_cleaned %>% command, add this if you want to include behavior_processed_forkelp
+#  merge(behavior_processed_forkelp, by = c("Treatment", "Trial")) %>%
+# mutate(dist_slice_avgpyc1 = abs(slice - avg_pycno1_slice),
+#dist_slice_avgpyc2 = abs(slice - avg_pycno2_slice), 
 
-kelp_processed$Urch_habitat_treatment <- as.factor(kelp_processed$Urch_habitat_treatment)
-kelp_processed$Pred_treatment <- as.factor(kelp_processed$Pred_treatment)
+#this is for model to work - can't be NA - so 100 is far away
+#dist_slice_avgpyc1 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc1),
+#dist_slice_avgpyc2 = case_when(Pred_treatment == "Control" ~ 100, .default = dist_slice_avgpyc2), 
 
+#changing up dn ratio from inf to 1 for control (for model) and NaN to real NA
+#up_dn_pyc1_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc1_ratio),
+#up_dn_pyc2_ratio = case_when(Pred_treatment == "Control" ~ 1, .default = up_dn_pyc2_ratio))
+
+#reformatting things for model:
 kelp_processed$dist_slice_avgpyc1[is.nan(kelp_processed$dist_slice_avgpyc1)]<-NA
 kelp_processed$dist_slice_avgpyc2[is.nan(kelp_processed$dist_slice_avgpyc2)]<-NA
 
@@ -102,18 +80,4 @@ behavior_processed$Pred_treatment <- as.factor(behavior_processed$Pred_treatment
 behavior_processed$up_dn_pyc1 <- as.factor(behavior_processed$up_dn_pyc1)
 behavior_processed$up_dn_pyc2 <- as.factor(behavior_processed$up_dn_pyc2)
 behavior_processed$Day_numrecord <- as.factor(behavior_processed$Day_numrecord)
-
-  
-#write CSVs
-write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
-write.csv(behavior_processed, file = "data/manipulated/processed_behavior/behavior_processed.csv")
-
-
-
-rm(behavior_cleaned)
-rm(behavior_processed_forkelp)
-rm(kelp_cleaned)
-
-
-
 

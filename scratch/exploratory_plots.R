@@ -156,3 +156,64 @@ ggplot(behavior_processed) +
   theme_classic()
 
 
+
+
+
+#kelp grazed by predator/urchin treatment
+ggplot(data = subset(kelp_processed, !is.na(pcnt_grazed)), aes(x = Urch_habitat_treatment, y = pcnt_grazed, fill = Pred_treatment) ) +
+  geom_boxplot() +
+  theme_classic() +
+  scale_fill_manual(values = c('#5A5A5A','#DAF7A6') ) +
+  ylab("% Change Kelp Grazed") +
+  xlab("Urchin habitat ") +
+  labs(fill = "Predator treatment")
+
+#merging model estimates w sd from raw data for error bars
+kelp_mod_withsd <- kelp_processed_sd %>%
+  distinct(Pred_treatment, Urch_habitat_treatment, raw_sd, raw_mean) %>%
+  merge(predicted_kelp_mod)
+
+###########################
+#Model
+###########################
+#bar chart of model estimates with error bars from raw data's standard error
+ggplot(kelp_mod_withsd, 
+       aes(x = Urch_habitat_treatment, y = predicted, fill = Pred_treatment)) +
+  
+  geom_bar(stat = "identity", 
+           position = position_dodge()) +
+  
+  geom_errorbar(data = kelp_mod_withsd,
+                aes(ymin = raw_mean-raw_sd, ymax =raw_mean+raw_sd), 
+                position=position_dodge()) +
+  
+  labs(title = "Predicted values of % kelp grazed from GLMM", 
+       x = "Urchin habitat", y = "% kelp grazed", 
+       fill = "Pred treatment",
+       caption = "Note: error bars are made with respect to SD and mean of raw data") +
+  
+  theme_classic() +
+  scale_fill_manual(values = c('#DAF7A6','#5A5A5A') ) +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Predator treatment")
+
+#overlay of mean model estimate with raw data - defeats purpose of visualizing model estimate
+ggplot() +
+  
+  #model plot (mean GLMM value)
+  geom_point(data = predicted_kelp_mod, 
+             aes(x = Urch_habitat_treatment, y = predicted, color = Pred_treatment), 
+             position = position_dodge(0.5)) +
+  
+  #overlayed raw data
+  geom_point(data = kelp_processed, 
+             aes(x = Urch_habitat_treatment, y = pcnt_grazed, color = Pred_treatment), 
+             position = position_dodge(0.5), 
+             alpha = 0.1) +
+  
+  labs(title = "Predicted values of % kelp grazed from GLMM overlayed with raw data", x = "Urchin habitat", y = "% kelp grazed", fill = "Pred treatment") +
+  theme_classic() +
+  ylab("% Change Kelp Grazed") +
+  labs(fill = "Predator treatment")
+
+

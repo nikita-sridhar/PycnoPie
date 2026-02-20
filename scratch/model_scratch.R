@@ -33,6 +33,31 @@ ggplot(kelp_processed, aes(x=pcnt_grazed))+
 shapiro.test(kelp_processed$pcnt_grazed)
 
 
+#transformations?????
+transformed_kelp <- kelp_processed %>%
+  mutate(pcnt_grazed = case_when(pcnt_grazed <= 0 ~ 0.00001, .default = pcnt_grazed),
+         log10kelp = log10(pcnt_grazed)) #making negative and 0 values = 0.000001 
+
+transformed_kelp <- kelp_processed %>%
+  filter(pcnt_grazed > 0)  %>%
+  mutate(log10kelp = log10(pcnt_grazed),
+         recipkelp = 1/pcnt_grazed) #making negative and 0 values = 0.000001 
+
+ggplot(transformed_kelp, aes(x=log10kelp))+
+  geom_histogram() +
+  facet_wrap(vars(Treatment))
+
+qqPlot(transformed_kelp$log10kelp)
+
+ggplot(transformed_kelp, aes(x=recipkelp))+
+  geom_histogram() +
+  facet_wrap(vars(Treatment))
+
+qqPlot(transformed_kelp$recipkelp)
+
+#NOTE: realized that actually bad idea to transform raw data pre using a link function for a glmm
+#a glmm can handle non-normal
+
 #step 2: build model------------------------------------------------------------
 
 #for normally distributed, can take on any values.
@@ -258,6 +283,93 @@ ggplot(predicted_b4, aes(group, predicted, fill = x)) +
 
 
 plot(effects::allEffects(b1))
+
+#test for normality (this is the reason using a GLMM not a LM - also why using the gaussian link function)
+ggplot(kelp_processed, aes(x=sqrt(pos_pcnt_change))) +
+  geom_histogram() +
+  facet_wrap(vars(Treatment))
+
+qqPlot(kelp_processed$pos_pcnt_change) #looks like not normal, right-skew
+
+
+#building model
+kelp_mod <- glmmTMB::glmmTMB(sqrt(pos_pcnt_change) ~ 
+                               
+                               Urch_habitat_treatment + 
+                               Pred_treatment + 
+                               Urch_habitat_treatment* Pred_treatment +
+                               
+                               
+                               (1|Trial),  
+                             
+                             data = kelp_processed,
+                             
+                             family = gaussian(link = "identity")) 
+
+sjPlot::tab_model(kelp_mod)
+
+predicted_kelp_mod <- ggpredict(model = kelp_mod, 
+                                terms = c("Pred_treatment", 
+                                          "Urch_habitat_treatment")) %>% 
+  rename(Pred_treatment = x,
+         Urch_habitat_treatment = group) 
+
+
+#post hoc tests
+EMM <- emmeans(kelp_mod, ~ Pred_treatment|Urch_habitat_treatment, type = "response")
+EMM
+plot(EMM)
+
+CON <- pairs(EMM) 
+CON #a bit sus that values are same for kf/b
+
+CON %>%
+  data.frame()  %>%
+  mutate(p.value = ifelse(p.value < 0.0001, "< 0.0001",
+                          round(p.value,3))) %>%
+  flextable() %>%
+  set_header_labels(contrast = 'Contrast',
+                    emmean = 'Estimate',
+                    SE = 's.e.',
+                    df = 'd.f.',
+                    t.ratio = "t-ratio",
+                    p.value = "p value") %>%
+  italic(j = c(3:7), part = 'header') %>%
+  colformat_double(j = c(2:6), digits = 2) %>%
+  align(align = 'center', part = 'header') %>%
+  align(align = 'left', part = 'body') %>%
+  font(fontname = 'Times', part = 'all') %>%
+  bold(~p.value < 0.05, j = "p.value") %>%
+  fontsize(size = 12, part = 'all') %>%
+  autofit()  %>%
+  theme_vanilla()
+
+EMM <- emmeans(kelp_mod, ~ Urch_habitat_treatment|Pred_treatment, type = "response")
+EMM
+plot(EMM)
+
+CON <- pairs(EMM) %>% summary(infer = TRUE)
+CON
+
+
+######################################################################
+#11-24-25
+
+#testing linear models w kelp weight as diff (not % and including neg values)
+kelp_processed <- kelp_processed %>% 
+  mutate(across(c(Pred_treatment, Urch_habitat_treatment), as.factor))
+
+#releveling reference groups
+kelp_processed$Pred_treatment <- relevel(kelp_processed$Pred_treatment, ref = "Control")
+kelp_processed$Urch_habitat_treatment <- relevel(kelp_processed$Urch_habitat_treatment, ref = "KF")
+
+#investigating distributions 
+ggplot(kelp_processed, aes(x = weight_diff)) +
+  geom_density() +
+  facet_wrap(vars(Treatment))
+
+#test for normality
+qqPlot(kelp$weight_diff)
 
 
 
