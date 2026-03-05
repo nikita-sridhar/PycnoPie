@@ -6,13 +6,15 @@ format:
     page-layout: full
 editor: visual
 date: last-modified
+message: false
 ---
 
-*Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found [here](https://github.com/nikita-sridhar/PycnoPie/tree/main/scripts).*
-
-**Note: run \_\_main.R first!**
+**Analysis of urchin grazing data for PycnoPie experiment on sunflower star indirect effects on kelp with urchins from different source habitats conducted in Sitka, AK in summer of 2024.**
 
 ```{r}
+#| echo: false
+#| warning: false
+
 library(here)
 library(tidyverse)
 library(googlesheets4)
@@ -42,6 +44,8 @@ source(here::here("./scripts/01_manipulation.R"))
 ```
 
 ```{r}
+#| echo: false
+
 #default formatting for all tables in this report
 set_flextable_defaults(
   font.size = 11, font.family = "Arial",
@@ -59,11 +63,16 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 ## Kelp grazing data
 
-#### **Building** models and contrasts
+### **Building** models and contrasts
+
+Investigating distribution of response variable and test for normality.
 
 ```{r}
 #| layout-ncol: 2
 #| label: model-kelp
+#| results: hide
+
+
 
 #releveling reference groups 
 kelp_processed$Urch_habitat_treatment <- relevel(kelp_processed$Urch_habitat_treatment, ref = "KF")
@@ -73,12 +82,19 @@ kelp_processed$Pred_treatment <- relevel(kelp_processed$Pred_treatment, ref = "C
 #investigating distributions 
 ggplot(kelp_processed, aes(x = weight_diff)) +
   geom_density() +
-  facet_wrap(vars(Treatment))
+  facet_wrap(vars(Treatment)) +
+  theme_bw()
 
 
 #test for normality
 qqPlot(kelp_processed$weight_diff)
 
+```
+
+Linear mixed-effects model for difference in kelp weight
+
+```{r}
+#| results: hide
 
 #building model
 
@@ -121,9 +137,12 @@ anova(model) %>%
   
 ```
 
-**Post-hoc tests**
+### **Post-hoc tests**
+
+Calculating estimated marginal means from the linear mixed-effects model, and calculating pairwise contrasts based on a priori hypotheses based on custom contrast weights
 
 ```{r}
+
 #estimated marginal means
 EMM <- emmeans(model, ~ Pred_treatment + Urch_habitat_treatment + Pred_treatment*Urch_habitat_treatment)
 EMM
@@ -196,9 +215,13 @@ ft
 
 ```
 
-Plots:
+### Plots:
+
+Bar chart of raw data showing change in kelp weight across treatments. Significance bars manually added based on significant pairwise contrasts.
 
 ```{r}
+#| results: hide
+
 #plots of raw data:
 #releveling reference groups (this is just bc i manually labelled x axis formatting stuff based on indexing position, and first is barren second is kf)
 kelp_processed$Urch_habitat_treatment <- relevel(kelp_processed$Urch_habitat_treatment, ref = "B")

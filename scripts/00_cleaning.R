@@ -71,29 +71,7 @@ behavior_cleaned <- behavior %>%
   
   #making a column for slice and a column for position
   separate(urchin_location, c("urchin_slice", "urchin_position"), "_",extra = "merge") %>%
-  separate("Pycno1.position", c("pycno1_position","pycno1_slice"), "\\_(?!.*_)", extra = "merge") %>%
-  separate("Pycno2.position", c("pycno2_position","pycno2_slice"), "\\_(?!.*_)", extra = "merge") %>%
   
-  
-  mutate(pycno1_slice = case_when(pycno1_slice == "green" ~ 1,
-                                  pycno1_slice == "red" ~ 2,
-                                  pycno1_slice == "yellow" ~ 3,
-                                  pycno1_slice == "blue" ~ 4,
-                                  pycno1_slice == "orange" ~ 5,
-                                  pycno1_slice == "white" ~ 6,
-                                  pycno1_slice == "black" ~ 7,
-                                  pycno1_slice == "white2" ~ 8,
-                                  pycno1_slice == "crev" ~ 0),
-         
-         pycno2_slice = case_when(pycno2_slice == "green" ~ 1,
-                                  pycno2_slice == "red" ~ 2,
-                                  pycno2_slice == "yellow" ~ 3,
-                                  pycno2_slice == "blue" ~ 4,
-                                  pycno2_slice == "orange" ~ 5,
-                                  pycno2_slice == "white" ~ 6,
-                                  pycno2_slice == "black" ~ 7,
-                                  pycno2_slice == "white2" ~ 8,
-                                  pycno2_slice == "crev" ~ 0)) %>%
   
   mutate(urchin_slice = as.numeric(urchin_slice)) %>%
   mutate(urchin_location_count = case_when(is.na(urchin_location_count) ~ 0, .default = urchin_location_count)) %>% #for now - changed urchin count NA to zero - but think about whether or not this is ok!!!!
