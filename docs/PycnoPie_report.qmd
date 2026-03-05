@@ -10,7 +10,36 @@ date: last-modified
 
 *Select results and interpretation from PycnoPie experiment run in the summer of 2024 on indirect effects of Pycnopodia helianthoides on grazing rates of red urchins from kelp forests and urchin barrens. Cleaning and processing scripts can be found [here](https://github.com/nikita-sridhar/PycnoPie/tree/main/scripts).*
 
-**Note: run \_\_main.R first! *need to figure this out*** or just run 00_cleaning and 00_manipulation
+**Note: run \_\_main.R first!**
+
+```{r}
+library(here)
+library(tidyverse)
+library(googlesheets4)
+library(strex)
+library(lme4)
+library(performance)
+library(sjPlot)
+library(glmmTMB)
+library(DHARMa)
+library(ggeffects)
+library(effects)
+library(car)
+library(emmeans)
+library(ggsignif)
+library(flextable)
+library(lmerTest)
+library(ggpubr)
+
+kelp <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=184409314#gid=184409314","Kelp")
+behavior <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=1070675104#gid=1070675104","Behavior")
+
+
+source(here::here("./scripts/00_cleaning.R"))
+source(here::here("./scripts/01_manipulation.R"))
+
+
+```
 
 ```{r}
 #default formatting for all tables in this report

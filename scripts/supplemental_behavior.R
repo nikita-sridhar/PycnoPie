@@ -27,7 +27,6 @@ urch_bhvr_treatment <- urch_bhvr_tank %>%
 #models
 ################################################################################
 
-#distribution is weird for both but I think gamma?
 ggplot(urch_bhvr_tank, aes(x = pcnt_on_kelp)) + #right skew - use gamma 
   geom_density() +
   facet_wrap(vars(Treatment)) 
