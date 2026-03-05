@@ -32,10 +32,13 @@ urchin_size <- urchin_roster %>%
 #flextable formatting for urchin size table
 flextable(urchin_size) %>%
   #header formatting
-  set_header_labels(mean_size_cm = 'Mean Urchin Size (cm)',
-                    sd_size_cm = 'SD of Urchin Sizes (cm)') %>%
+  add_header_lines(values = "Experiment 2") %>%
+  italic(i = 1, part = "header") %>%
+  bold(i = 2, part = "header") %>%
+  hline_top(border = fp_border_default(width = 0), part = "header") %>%
+  set_header_labels(mean_size_cm = 'Mean test size (cm)',
+                    sd_size_cm = 'SD of test sizes (cm)') %>%
   italic(part = "all", j = c(1,2)) %>%
-  bold(part = "header") %>%
   #body formatting
   colformat_double(digits = 2) %>% #setting number of decimal places
   
@@ -56,15 +59,16 @@ pycno_roster <- read_csv("data/raw/Raw data - Pycno Roster.csv") %>%
 #flextable formatting for pycno size table
 flextable(pycno_roster) %>%
   #header formatting
+  add_header_lines(values = "Experiment 2") %>%
+  italic(i = 1, part = "header") %>%
+  bold(i = 2, part = "header") %>%
+  hline_top(border = fp_border_default(width = 0), part = "header") %>%
   set_header_labels(radius_mean_cm = 'Mean Radius (cm)',
                     Urchin_treatment = "Urchin treatment",
                     radius_sd_cm = 'SD of Radius (cm)',
                     wet_weight_mean_g= "Mean Wet Weight (g)",
                     wet_weight_sd_g= "SD of Wet Weight (g)") %>%
-  #PYCNOPIE
-  
   italic(part = "all", j = 1) %>%
-  bold(part = "header") %>%
   #body formatting
   colformat_double(digits = 2) %>% #setting number of decimal places
   

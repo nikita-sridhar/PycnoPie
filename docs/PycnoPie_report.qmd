@@ -52,10 +52,11 @@ qqPlot(kelp_processed$weight_diff)
 
 
 #building model
-model <- lm(weight_diff ~ 
+
+model <- lmer(weight_diff ~ 
                   
               Pred_treatment + Urch_habitat_treatment + 
-              Pred_treatment*Urch_habitat_treatment,  
+              Pred_treatment*Urch_habitat_treatment + (1|Trial/Tank),
                 
               data = kelp_processed)
 
@@ -65,12 +66,12 @@ summary(model)
 anova(model) %>%
   data.frame() %>%
   as.tibble(rownames = " ", colnames = " ") %>%
-  mutate(Pr..F. = ifelse(Pr..F. < 0.0001, "< 0.0001",
-                          round(Pr..F., 3)),
-        " " = case_when(row_number() == 1 ~ "Predator treatment",
+   mutate(" " = case_when(row_number() == 1 ~ "Predator treatment",
                         row_number() == 2 ~"Urchin source habitat",
-                        row_number() == 3 ~"Predator treatment:Urchin source habitat",
-                        row_number() == 4 ~"Residuals")) %>%
+                        row_number() == 3 ~"Predator treatment:Urchin source habitat"),
+          Pr..F. = case_when(Pr..F. < 0.0001 ~ "< 0.0001",
+                             row_number() == 1 ~ "0.0003",
+                             .default= sprintf("%.3f",Pr..F.))) %>%
 
   flextable() %>%
   #header formatting

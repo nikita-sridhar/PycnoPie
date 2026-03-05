@@ -1,34 +1,40 @@
-###########################
-###     behavior      ####
-##########################
+#PYCNOPIE
 
-#note: slice = colored pie slice. position = outer/bottom/side/etc, aka orientation within slice. location = unique pairing of slice + position
-
-#loading data:
-behavior <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=1070675104#gid=1070675104",
-                                      "Behavior")
+###########
+#clean kelp
+###########
 
 
+kelp_cleaned <- kelp %>%
+  separate(Treatment, "_(?=[^_]*$)",
+           into = c("Pred_treatment", "Urch_habitat_treatment"), 
+           remove = FALSE) 
 
-#Cleaning------------------------------------------------------------------------
-
-#filtering behavior entries where total no of urch counted < 20
-behavior1 <- behavior %>%
-  filter(Total_num_urchin >= 20)
-
-#changing crev count to doubles (used for pivot_longer)
-behavior1$Num_urch_CREV1 <- as.double(behavior1$Num_urch_CREV1, na.rm = TRUE)
-behavior1$Num_urch_CREV2 <- as.double(behavior1$Num_urch_CREV2, na.rm = TRUE)
-behavior1$Num_urch_CREV3 <- as.double(behavior1$Num_urch_CREV3, na.rm = TRUE)
-behavior1$Num_urch_CREV4 <- as.double(behavior1$Num_urch_CREV4, na.rm = TRUE)
-behavior1$Num_urch_CREV5 <- as.double(behavior1$Num_urch_CREV5, na.rm = TRUE)
+rm(kelp)
 
 
-behavior_cleaned <- behavior1 %>%
-  pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "urchin_location", values_to = "urchin_location_count") %>% 
+###############
+#clean behavior
+###############
+
+#note: slice = colored pie slice. position = outer/bottom/side/etc, 
+#aka orientation within slice. location = unique pairing of slice + position
+
+
+behavior_cleaned <- behavior %>%
+  
+  #filtering behavior entries where total no of urch counted < 20
+  filter(Total_num_urchin >= 20) %>%
+  
+  #changing crev count to doubles (used for pivot_longer)
+  mutate(across(Num_urch_CREV1:Num_urch_CREV5, as.double)) %>%
+  
+  pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "urchin_location", 
+               values_to = "urchin_location_count") %>% 
   
   #changing crev locations to pie slice location 
-  mutate(crev_count = case_when(grepl("CREV",urchin_location) ~ urchin_location_count, .default = 0),
+  mutate(crev_count = case_when(grepl("CREV",urchin_location) ~ urchin_location_count, 
+                                .default = 0),
          #renaming values in urchin_location column to be more descriptive
          urchin_location = case_when(
            urchin_location == "Num_urch_CREV1" ~ ".5_Outer_bottom",
@@ -60,14 +66,13 @@ behavior_cleaned <- behavior1 %>%
            urchin_location == "White2_outer_SIDE" ~ "8_Outer_side",
            urchin_location == "White2_outer_BOTTOM" ~ "8_Outer_bottom",
            urchin_location == "White2_INNER" ~ "8_Inner",
-             
-             .default = urchin_location)) %>%
+           
+           .default = urchin_location)) %>%
   
   #making a column for slice and a column for position
   separate(urchin_location, c("urchin_slice", "urchin_position"), "_",extra = "merge") %>%
-
-  separate(`Pycno1 position`, c("pycno1_position","pycno1_slice"), "\\_(?!.*_)", extra = "merge") %>%
-  separate(`Pycno2 position`, c("pycno2_position","pycno2_slice"), "\\_(?!.*_)", extra = "merge") %>%
+  separate("Pycno1.position", c("pycno1_position","pycno1_slice"), "\\_(?!.*_)", extra = "merge") %>%
+  separate("Pycno2.position", c("pycno2_position","pycno2_slice"), "\\_(?!.*_)", extra = "merge") %>%
   
   
   mutate(pycno1_slice = case_when(pycno1_slice == "green" ~ 1,
@@ -93,7 +98,7 @@ behavior_cleaned <- behavior1 %>%
   mutate(urchin_slice = as.numeric(urchin_slice)) %>%
   mutate(urchin_location_count = case_when(is.na(urchin_location_count) ~ 0, .default = urchin_location_count)) %>% #for now - changed urchin count NA to zero - but think about whether or not this is ok!!!!
   
-#averaging over position scale to get one value per slice
+  #averaging over position scale to get one value per slice
   group_by(Tank, Treatment, Date, Day_numrecord, Trial, urchin_slice) %>%
   mutate(urchin_slice_count = sum(urchin_location_count)) %>%
   ungroup() %>%
@@ -101,20 +106,4 @@ behavior_cleaned <- behavior1 %>%
   separate(Treatment, "_(?=[^_]*$)",
            into = c("Pred_treatment", "Urch_habitat_treatment"), 
            remove = FALSE) 
-
-  
-
-
-
-#still need to figure this part out.
-  #mutate(pyc_slice_count = case_when(pycno1_slice != 0 | urchin_slice == pycno2_slice ~ 1, #NOTE: this is number of pycnos in a SLICE - not per position (outer/bottom/etc) - can add this variable too if you want to compare it later!
-                                     #slice == pycno1_slice & slice == pycno2_slice ~ 2, #for some reason no 2 vvalues showing up - in the data or prob w code?
-                                    # is.na(pycno1_slice) & Treatment %in% c("Star_KF", "Star_B") ~ NA, #turns pycno_count to 0 if pyc slice wasn't recorded in a treatment w a star
-                                   #  is.na(pycno2_slice) & Treatment %in% c("Star_KF", "Star_B") ~ NA,
-                                     #.default = 0))
-  
-  
-
-
-
 

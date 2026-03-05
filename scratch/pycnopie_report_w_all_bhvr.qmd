@@ -1,7 +1,125 @@
 ---
-title: "behavior_analysis_notused"
+title: "pycnopie_report_w_all_bhvr"
 format: html
 ---
+
+```{r}
+###########################
+###     behavior      ####
+##########################
+
+#note: slice = colored pie slice. position = outer/bottom/side/etc, aka orientation within slice. location = unique pairing of slice + position
+
+#loading data:
+behavior <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=1070675104#gid=1070675104",
+                                      "Behavior")
+
+
+
+#Cleaning------------------------------------------------------------------------
+
+#filtering behavior entries where total no of urch counted < 20
+behavior1 <- behavior %>%
+  filter(Total_num_urchin >= 20)
+
+#changing crev count to doubles (used for pivot_longer)
+behavior1$Num_urch_CREV1 <- as.double(behavior1$Num_urch_CREV1, na.rm = TRUE)
+behavior1$Num_urch_CREV2 <- as.double(behavior1$Num_urch_CREV2, na.rm = TRUE)
+behavior1$Num_urch_CREV3 <- as.double(behavior1$Num_urch_CREV3, na.rm = TRUE)
+behavior1$Num_urch_CREV4 <- as.double(behavior1$Num_urch_CREV4, na.rm = TRUE)
+behavior1$Num_urch_CREV5 <- as.double(behavior1$Num_urch_CREV5, na.rm = TRUE)
+
+
+behavior_cleaned <- behavior1 %>%
+  pivot_longer(Green_outer_SIDE:Num_urch_CREV5, names_to = "urchin_location", values_to = "urchin_location_count") %>% 
+  
+  #changing crev locations to pie slice location 
+  mutate(crev_count = case_when(grepl("CREV",urchin_location) ~ urchin_location_count, .default = 0),
+         #renaming values in urchin_location column to be more descriptive
+         urchin_location = case_when(
+           urchin_location == "Num_urch_CREV1" ~ ".5_Outer_bottom",
+           urchin_location == "Num_urch_CREV2" ~ "2.5_Outer_bottom",
+           urchin_location == "Num_urch_CREV3" ~ "4.5_Outer_bottom",
+           urchin_location == "Num_urch_CREV4" ~ "6.5_Outer_bottom",
+           urchin_location == "Num_urch_CREV5" ~ "0_Outer_bottom",
+           urchin_location == "Green_outer_SIDE" ~ "1_Outer_side",
+           urchin_location == "Green_outer_BOTTOM" ~ "1_Outer_bottom",
+           urchin_location == "Green_INNER" ~ "1_Inner",
+           urchin_location == "Red_outer_SIDE" ~ "2_Outer_side",
+           urchin_location == "Red_outer_BOTTOM" ~ "2_Outer_bottom",
+           urchin_location == "Red_INNER" ~ "2_Inner",
+           urchin_location == "Yellow_outer_SIDE" ~ "3_Outer_side",
+           urchin_location == "Yellow_outer_BOTTOM" ~ "3_Outer_bottom",
+           urchin_location == "Yellow_INNER" ~ "3_Inner",
+           urchin_location == "Blue_outer_SIDE" ~ "4_Outer_side",
+           urchin_location == "Blue_outer_BOTTOM" ~ "4_Outer_bottom",
+           urchin_location == "Blue_INNER" ~ "4_Inner",
+           urchin_location == "White_outer_SIDE" ~ "6_Outer_side", #are you sure
+           urchin_location == "White_outer_BOTTOM" ~ "6_Outer_bottom",
+           urchin_location == "White_INNER" ~ "6_Inner",
+           urchin_location == "Orange_outer_SIDE" ~ "5_Outer_side",
+           urchin_location == "Orange_outer_BOTTOM" ~ "5_Outer_bottom",
+           urchin_location == "Orange_INNER" ~ "5_Inner",
+           urchin_location == "Black_outer_SIDE" ~ "7_Outer_side",
+           urchin_location == "Black_outer_BOTTOM" ~ "7_Outer_bottom",
+           urchin_location == "Black_INNER" ~ "7_Inner",
+           urchin_location == "White2_outer_SIDE" ~ "8_Outer_side",
+           urchin_location == "White2_outer_BOTTOM" ~ "8_Outer_bottom",
+           urchin_location == "White2_INNER" ~ "8_Inner",
+             
+             .default = urchin_location)) %>%
+  
+  #making a column for slice and a column for position
+  separate(urchin_location, c("urchin_slice", "urchin_position"), "_",extra = "merge") %>%
+
+  separate(`Pycno1 position`, c("pycno1_position","pycno1_slice"), "\\_(?!.*_)", extra = "merge") %>%
+  separate(`Pycno2 position`, c("pycno2_position","pycno2_slice"), "\\_(?!.*_)", extra = "merge") %>%
+  
+  
+  mutate(pycno1_slice = case_when(pycno1_slice == "green" ~ 1,
+                                  pycno1_slice == "red" ~ 2,
+                                  pycno1_slice == "yellow" ~ 3,
+                                  pycno1_slice == "blue" ~ 4,
+                                  pycno1_slice == "orange" ~ 5,
+                                  pycno1_slice == "white" ~ 6,
+                                  pycno1_slice == "black" ~ 7,
+                                  pycno1_slice == "white2" ~ 8,
+                                  pycno1_slice == "crev" ~ 0),
+         
+         pycno2_slice = case_when(pycno2_slice == "green" ~ 1,
+                                  pycno2_slice == "red" ~ 2,
+                                  pycno2_slice == "yellow" ~ 3,
+                                  pycno2_slice == "blue" ~ 4,
+                                  pycno2_slice == "orange" ~ 5,
+                                  pycno2_slice == "white" ~ 6,
+                                  pycno2_slice == "black" ~ 7,
+                                  pycno2_slice == "white2" ~ 8,
+                                  pycno2_slice == "crev" ~ 0)) %>%
+  
+  mutate(urchin_slice = as.numeric(urchin_slice)) %>%
+  mutate(urchin_location_count = case_when(is.na(urchin_location_count) ~ 0, .default = urchin_location_count)) %>% #for now - changed urchin count NA to zero - but think about whether or not this is ok!!!!
+  
+#averaging over position scale to get one value per slice
+  group_by(Tank, Treatment, Date, Day_numrecord, Trial, urchin_slice) %>%
+  mutate(urchin_slice_count = sum(urchin_location_count)) %>%
+  ungroup() %>%
+  
+  separate(Treatment, "_(?=[^_]*$)",
+           into = c("Pred_treatment", "Urch_habitat_treatment"), 
+           remove = FALSE) 
+
+  
+
+
+
+#still need to figure this part out.
+  #mutate(pyc_slice_count = case_when(pycno1_slice != 0 | urchin_slice == pycno2_slice ~ 1, #NOTE: this is number of pycnos in a SLICE - not per position (outer/bottom/etc) - can add this variable too if you want to compare it later!
+                                     #slice == pycno1_slice & slice == pycno2_slice ~ 2, #for some reason no 2 vvalues showing up - in the data or prob w code?
+                                    # is.na(pycno1_slice) & Treatment %in% c("Star_KF", "Star_B") ~ NA, #turns pycno_count to 0 if pyc slice wasn't recorded in a treatment w a star
+                                   #  is.na(pycno2_slice) & Treatment %in% c("Star_KF", "Star_B") ~ NA,
+                                     #.default = 0))
+
+```
 
 ```{r}
 behavior_processed <- behavior_cleaned %>%
@@ -43,54 +161,13 @@ behavior_processed_forkelp <- behavior_processed %>%
             up_dn_pyc2_ratio = sum(up_dn_pyc2=="upstream")/sum(up_dn_pyc2=="downstream")) %>%
   ungroup()
 
-
-
-
-
 ```
 
 ## Behavior data
 
-#### **Variance to mean ratio of urchin counts in a tank:**
-
-A metric to assess the clumped vs. uniform vs. random distribution of urchins in a tank, and see how this varies when a star is/isn't present. This was calculated by finding the variance of urchin counts per pie slice in a tank and dividing this by the mean urchin count per pie slice in a tank averaged across behavioral assays in a trial.
+Other things I did not included here: plotted variance to mean ratio of urchins (way to see if distribution is random, clumped, uniform, etc)
 
 Variance to mean of 1 = random, \>1 = clumped, \<1 = uniform
-
-```{r}
-#| layout-ncol: 2
-#| label: raw-bhvr-variance
-
-#VARIANCE TO MEAN RATIO of urchin distribution over treatments
-#NOTE: v-to-mean of 1 = random, > 1 = clumped, < 1 = uniform
-#should i find the variance of the var to mean ratios to find trial scale clustering dynamics?
-ggplot(behavior_processed, 
-       aes(x = Urch_habitat_treatment,
-           y = trial_avg_var_to_mean,
-           fill = Pred_treatment)) +
-  
-  geom_bar(stat = "identity", position = position_dodge()) +
-  
-  labs(title = "Trial avg variance-to-mean ratio of urchin slice counts",
-       x = "Treatment",
-       y = "Trial avg variance-to-mean ratio of urchin counts") +
-  
-  theme_classic()
-
-
-ggplot(behavior_processed, 
-       aes(x = Urch_habitat_treatment,
-           y = trial_avg_var_to_mean,
-           fill = Pred_treatment)) +
-  
-  geom_boxplot() +
-  
-  labs(title = "Variance to mean ratio of urchin slices across treatments",
-       x = "Treatment",
-       y = "Variance of percentage of urchins per slice") +
-  
-  theme_classic()
-```
 
 ```{r}
 #| layout-ncol: 2
@@ -261,4 +338,32 @@ ggplot(predicted_urch_slice_mod, aes(facet, predicted, fill = x)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position=position_dodge()) 
 ```
 
-## 
+```{r}
+#calculation of predation rate: 
+#total number of urchins eaten / number of urchins in star treatments:
+#this was calculated manually based on notes written of when urchins eaten
+
+#% of urchins consumed
+22/(24*24)*100 #22 total urchins consumed, 24 total star treatments, 24 urchins per tank
+
+#predation rate: of two stars, so divided by 2
+#pred1 - 1 urchin eaten by 2 stars (48 hr trial duration)
+p1 <- (1/48)/2 
+p2 <- (1/48)/2
+p3 <- (2/48)/2
+p4 <- (1/48)/2
+p5 <- (1/48)/2
+p6 <- (2/48)/2
+p7 <- (1/48)/2
+p8 <- (4/48)/2
+p9 <- (1/48)/2
+p10 <- (1/48)/2
+p11 <- (1/48)/2
+p12 <- (2/48)/2
+p13 <- (1/48)/2
+p14 <- (1/48)/2
+p15 <- (2/48)/2
+
+#mean pred rate
+mean(c(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15))
+```
