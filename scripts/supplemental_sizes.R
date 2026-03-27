@@ -14,7 +14,7 @@ set_flextable_defaults(
 
 
 #average urchin sizes
-urchin_roster <- read_csv("data/raw/Raw data - Urchin Roster.csv") 
+urchin_roster <- read_csv("data/raw/exp2_urchin_roster.csv") 
 
 urchin_size <- urchin_roster %>% 
   group_by(Treatment) %>%
@@ -46,7 +46,7 @@ flextable(urchin_size) %>%
 
 
 #average pycno sizes
-pycno_roster <- read_csv("data/raw/Raw data - Pycno Roster.csv") %>%
+pycno_roster <- read_csv("data/raw/exp2_pycno_roster.csv") %>%
   mutate(Urchin_treatment = ifelse(Urchin_treatment == "B", "Barren","Kelp Forest"))  %>%
   group_by(Urchin_treatment) %>%
   summarise(radius_mean_cm=mean(Radius_cm, na.rm = TRUE), 

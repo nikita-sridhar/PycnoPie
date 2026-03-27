@@ -19,6 +19,22 @@ kelp_processed <- kelp_cleaned %>%
   ungroup() %>%
   unique()
 
+
+#finding averages
+avg_treatment_kelp <- kelp_processed %>%
+  group_by(Treatment, Urch_habitat_treatment, Pred_treatment) %>%
+  summarise(avg_weight_diff = mean(weight_diff),
+            sd_weight_diff = sd(weight_diff))
+
+#calculating sample size for raw data
+#whole experiment:
+kelp_processed %>%  summarize(count = n())
+
+#whole tank:
+kelp_processed %>% group_by(Treatment) %>% summarize(count = n())
+
+
+
 #write.csv(kelp_processed, file = "data/manipulated/processed_kelp/kelp_processed.csv")
 
 #rm(kelp_cleaned)

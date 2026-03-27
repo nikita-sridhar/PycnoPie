@@ -9,7 +9,7 @@
 Outline of files and their respective functions:
 
 | File structure | Description |
-|-------------------------|-----------------------------------------------|
+|----|----|
 | \_\_main.R | Loads libraries and data, runs cleaning and manipulation scripts required for future scripts/reports. |
 | docs/PycnoPie_report.qmd | Main analysis of kelp data including building models, post-hoc tests, and plotting graphs. |
 | scripts/predation_rate.R | Calculation of *Pycnopodia* predation rates (numbers derived from notes in raw data) |

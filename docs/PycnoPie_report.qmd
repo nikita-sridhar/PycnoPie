@@ -33,8 +33,8 @@ library(flextable)
 library(lmerTest)
 library(ggpubr)
 
-kelp <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=184409314#gid=184409314","Kelp")
-behavior <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1yFkZm64m7c9b4EdSxK3-qR8B7I-5rWyk7CDs7fmmMKg/edit?gid=1070675104#gid=1070675104","Behavior")
+kelp <- read.csv("data/raw/exp2_kelp_weight.csv")
+behavior <- read.csv("data/raw/exp2_behavior.csv")
 
 
 source(here::here("./scripts/00_cleaning.R"))
