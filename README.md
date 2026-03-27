@@ -4,7 +4,7 @@
 
 ### Authored by: Nikita Sridhar
 
-*Data and analysis for PycnoPie, an experiment on the effect of sunflower stars on urchin grazing of kelp with urchins from barrens and kelp forests that was run in the summer of 2024 in Sitka, AK.*
+*Data and analysis for PycnoPie, an experiment on the effect of sunflower stars on urchin grazing of kelp with urchins from barrens and kelp forests that was run in the summer of 2024 in Sitka, AK. Using R Version 2026.01.1+403 (2026.01.1+403)*
 
 Outline of files and their respective functions:
 
